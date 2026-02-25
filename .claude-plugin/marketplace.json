@@ -1,0 +1,15 @@
+{
+  "name": "mo-cc-plugins",
+  "owner": {
+    "name": "mocraimer",
+    "email": "mocraimer@users.noreply.github.com"
+  },
+  "plugins": [
+    {
+      "name": "gamified-code-review",
+      "source": "./plugins/gamified-code-review",
+      "description": "Gamified code review that turns PRs into towers with floors. Challenge mode for independent review, Scout mode for AI-guided review. Earn XP, RPG titles, and session badges.",
+      "version": "1.0.0"
+    }
+  ]
+}
