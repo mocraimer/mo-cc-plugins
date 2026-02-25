@@ -1,0 +1,2837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review Tower</title>
+
+  <!-- CDN Dependencies -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css">
+
+  <style>
+    /* ===== Reset ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ===== Theme Variables ===== */
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-tertiary: #0f3460;
+      --bg-surface: #1e2a4a;
+      --text-primary: #e8e8e8;
+      --text-secondary: #a0b0c0;
+      --text-muted: #607080;
+      --accent: #e94560;
+      --accent-secondary: #ffd700;
+      --accent-tertiary: #4ecca3;
+      --border: #2a3a5a;
+      --success: #4ecca3;
+      --warning: #ffd700;
+      --danger: #e94560;
+      --info: #4ea8de;
+      --severity-critical: #ff4757;
+      --severity-high: #ff6b35;
+      --severity-medium: #ffd700;
+      --severity-low: #4ea8de;
+      --match-full: #4ecca3;
+      --match-human: #b388ff;
+      --match-miss: #ff6b6b;
+      --match-insight: #ffd700;
+      --font-heading: 'Georgia', 'Times New Roman', serif;
+      --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+      --radius: 8px;
+      --radius-sm: 4px;
+      --shadow: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
+      --transition: 0.2s ease;
+      --sidebar-width: 300px;
+    }
+
+    [data-theme="cyberpunk"] {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a28;
+      --bg-surface: #15152a;
+      --text-primary: #00ff88;
+      --text-secondary: #00cc66;
+      --text-muted: #00884a;
+      --accent: #ff0080;
+      --accent-secondary: #00f0ff;
+      --accent-tertiary: #b400ff;
+      --border: #1a3a2a;
+      --success: #00ff88;
+      --warning: #ffff00;
+      --danger: #ff0040;
+      --info: #00f0ff;
+      --font-heading: 'Courier New', 'Lucida Console', monospace;
+      --font-body: 'Courier New', 'Lucida Console', monospace;
+      --font-mono: 'Courier New', monospace;
+    }
+
+    [data-theme="academic"] {
+      --bg-primary: #f8f9fa;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e9ecef;
+      --bg-surface: #f1f3f5;
+      --text-primary: #212529;
+      --text-secondary: #495057;
+      --text-muted: #868e96;
+      --accent: #1a56db;
+      --accent-secondary: #047857;
+      --accent-tertiary: #7c3aed;
+      --border: #dee2e6;
+      --success: #047857;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --info: #2563eb;
+      --severity-critical: #dc2626;
+      --severity-high: #ea580c;
+      --severity-medium: #d97706;
+      --severity-low: #2563eb;
+      --match-full: #047857;
+      --match-human: #7c3aed;
+      --match-miss: #dc2626;
+      --match-insight: #d97706;
+      --font-heading: 'Georgia', 'Cambria', serif;
+      --font-body: 'Helvetica Neue', 'Arial', sans-serif;
+      --shadow: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    /* ===== Utility ===== */
+    .hidden { display: none !important; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+    /* ===== Layout ===== */
+    #game-container {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) 1fr;
+      height: 100vh;
+    }
+
+    /* ===== Sidebar ===== */
+    #sidebar {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .tower-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .tower-header h1 {
+      font-family: var(--font-heading);
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+    .tower-header .pr-title {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tower-header .complexity-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+    }
+
+    .tower-floors {
+      flex: 1;
+      padding: 12px;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 4px;
+    }
+
+    .floor-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background var(--transition);
+      border: 1px solid transparent;
+    }
+    .floor-item:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border);
+    }
+    .floor-item.floor-active {
+      background: var(--bg-tertiary);
+      border-color: var(--accent);
+    }
+    .floor-item.floor-cleared {
+      opacity: 0.7;
+      cursor: pointer;
+    }
+
+    .floor-number {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .floor-cleared .floor-number {
+      background: var(--success);
+      color: var(--bg-primary);
+    }
+    .floor-item:not(.floor-cleared) .floor-number {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+    }
+
+    .floor-name {
+      flex: 1;
+      font-size: 0.82rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .diff-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .diff-badge.easy { background: var(--info); color: #fff; }
+    .diff-badge.normal { background: var(--warning); color: #000; }
+    .diff-badge.boss { background: var(--danger); color: #fff; }
+
+    .floor-score {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--accent-secondary);
+    }
+
+    .sidebar-stats {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .sidebar-stats .xp-display {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      color: var(--accent-secondary);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .sidebar-stats .tier-display {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+    .badge-row {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .badge-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      opacity: 0.3;
+      transition: opacity var(--transition);
+    }
+    .badge-icon.earned {
+      opacity: 1;
+      border-color: var(--accent-secondary);
+      background: var(--bg-surface);
+    }
+
+    .sidebar-controls {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .sidebar-controls button {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all var(--transition);
+    }
+    .sidebar-controls button:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* ===== Main Content ===== */
+    #main-content {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #idle-message {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      color: var(--text-muted);
+    }
+    #idle-message .icon { font-size: 3rem; opacity: 0.5; }
+    #idle-message p { font-size: 1rem; }
+
+    /* ===== Mode Select ===== */
+    #mode-select-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .mode-card-container {
+      display: flex;
+      gap: 20px;
+    }
+    .mode-card {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      width: 200px;
+    }
+    .mode-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow);
+    }
+    .mode-card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.2rem;
+      margin-bottom: 4px;
+    }
+    .mode-card .multiplier {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      color: var(--accent-secondary);
+      margin-bottom: 8px;
+    }
+    .mode-card p { font-size: 0.8rem; color: var(--text-secondary); }
+
+    /* ===== Review Area ===== */
+    #review-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #review-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #review-toolbar .floor-title {
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      flex: 1;
+    }
+    #review-toolbar .phase-badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    #file-tabs {
+      display: flex;
+      gap: 0;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .file-tab {
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      color: var(--text-secondary);
+      transition: all var(--transition);
+    }
+    .file-tab:hover { color: var(--text-primary); background: var(--bg-surface); }
+    .file-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: var(--bg-secondary);
+    }
+
+    #diff-container {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+    }
+
+    /* Diff2html overrides */
+    .d2h-wrapper { background: var(--bg-primary); }
+    .d2h-file-wrapper { border: none; margin: 0; }
+    .d2h-file-header { display: none; }
+
+    /* Diff readability: high-contrast text and backgrounds */
+    .d2h-code-line, .d2h-code-side-line { color: #e0e0e0; }
+    .d2h-code-line-ctn { color: #e0e0e0; }
+    .d2h-diff-table { background: #1e1e2e; }
+    .d2h-code-linenumber { color: #888; background: #16162a; border-right: 1px solid #2a2a4a; }
+    .d2h-code-side-linenumber { color: #888; background: #16162a; border-right: 1px solid #2a2a4a; }
+    .d2h-emptyplaceholder-code { background: #1a1a2a; }
+    .d2h-emptyplaceholder-info { background: #1a1a2a; }
+    /* Addition lines */
+    .d2h-ins { background: #1a3a2a; }
+    .d2h-ins .d2h-code-line-ctn { color: #b8e8c8; }
+    .d2h-ins.d2h-change { background: #1a3a2a; }
+    .d2h-code-side-line.d2h-ins { background: #1a3a2a; }
+    ins.d2h-change { background: #2a5a3a; color: #d0f0d8; text-decoration: none; }
+    /* Deletion lines */
+    .d2h-del { background: #3a1a1a; }
+    .d2h-del .d2h-code-line-ctn { color: #e8b8b8; }
+    .d2h-del.d2h-change { background: #3a1a1a; }
+    .d2h-code-side-line.d2h-del { background: #3a1a1a; }
+    del.d2h-change { background: #5a2a2a; color: #f0d0d0; text-decoration: none; }
+    /* Context (unchanged) lines */
+    .d2h-cntx { background: #1e1e2e; }
+    .d2h-cntx .d2h-code-line-ctn { color: #c0c0d0; }
+    .d2h-code-side-line.d2h-cntx { background: #1e1e2e; }
+    /* Info/hunk header lines */
+    .d2h-info { background: #1a1a3a; color: #8888cc; border-color: #2a2a4a; }
+    .d2h-code-line-prefix { color: #888; }
+
+    /* Academic theme diff overrides */
+    [data-theme="academic"] .d2h-diff-table { background: #fff; }
+    [data-theme="academic"] .d2h-code-line, [data-theme="academic"] .d2h-code-line-ctn { color: #24292e; }
+    [data-theme="academic"] .d2h-code-linenumber, [data-theme="academic"] .d2h-code-side-linenumber { color: #6a737d; background: #f6f8fa; border-right: 1px solid #e1e4e8; }
+    [data-theme="academic"] .d2h-ins { background: #e6ffec; }
+    [data-theme="academic"] .d2h-ins .d2h-code-line-ctn { color: #22863a; }
+    [data-theme="academic"] ins.d2h-change { background: #acf2bd; color: #22863a; }
+    [data-theme="academic"] .d2h-del { background: #ffeef0; }
+    [data-theme="academic"] .d2h-del .d2h-code-line-ctn { color: #b31d28; }
+    [data-theme="academic"] del.d2h-change { background: #fdb8c0; color: #b31d28; }
+    [data-theme="academic"] .d2h-cntx { background: #fff; }
+    [data-theme="academic"] .d2h-cntx .d2h-code-line-ctn { color: #24292e; }
+    [data-theme="academic"] .d2h-info { background: #f1f8ff; color: #032f62; }
+    [data-theme="academic"] .d2h-emptyplaceholder-code, [data-theme="academic"] .d2h-emptyplaceholder-info { background: #fafbfc; }
+
+    /* Cyberpunk theme diff overrides */
+    [data-theme="cyberpunk"] .d2h-diff-table { background: #0a0a14; }
+    [data-theme="cyberpunk"] .d2h-code-line, [data-theme="cyberpunk"] .d2h-code-line-ctn { color: #00dd77; }
+    [data-theme="cyberpunk"] .d2h-code-linenumber, [data-theme="cyberpunk"] .d2h-code-side-linenumber { color: #00884a; background: #0a0a10; }
+    [data-theme="cyberpunk"] .d2h-ins { background: #002a15; }
+    [data-theme="cyberpunk"] .d2h-ins .d2h-code-line-ctn { color: #00ff88; }
+    [data-theme="cyberpunk"] .d2h-del { background: #2a0015; }
+    [data-theme="cyberpunk"] .d2h-del .d2h-code-line-ctn { color: #ff4488; }
+    [data-theme="cyberpunk"] .d2h-cntx .d2h-code-line-ctn { color: #00aa55; }
+    [data-theme="cyberpunk"] .d2h-info { background: #0a0a1a; color: #00f0ff; }
+
+    /* ===== Finding Highlights on Diff ===== */
+    .diff-line-highlight {
+      position: relative;
+    }
+    .diff-line-highlight::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+    .diff-line-highlight.hl-reviewer::before { background: var(--match-human); }
+    .diff-line-highlight.hl-ai::before { background: var(--danger); }
+    .diff-line-highlight.hl-matched::before { background: var(--match-full); }
+    .diff-line-highlight.hl-reviewer { background: rgba(179,136,255,0.08); }
+    .diff-line-highlight.hl-ai { background: rgba(255,107,107,0.08); }
+    .diff-line-highlight.hl-matched { background: rgba(78,204,163,0.08); }
+
+    .finding-marker {
+      position: absolute;
+      right: 8px;
+      top: 2px;
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* ===== Gutter Buttons (Challenge) ===== */
+    .gutter-add-btn {
+      display: none;
+      position: absolute;
+      left: -2px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid var(--accent);
+      background: var(--bg-secondary);
+      color: var(--accent);
+      font-size: 10px;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+    }
+    .gutter-add-btn:hover { background: var(--accent); color: #fff; }
+    .finding-input-active tr:hover .gutter-add-btn { display: flex; }
+    .gutter-range-start .gutter-add-btn { display: flex !important; background: var(--accent); color: #fff; }
+
+    /* ===== Bottom Panel ===== */
+    #bottom-panel {
+      flex-shrink: 0;
+      max-height: 45vh;
+      overflow-y: auto;
+      border-top: 2px solid var(--border);
+      background: var(--bg-secondary);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .panel-header h3 {
+      font-size: 0.85rem;
+      font-family: var(--font-heading);
+    }
+
+    .panel-content { padding: 12px 16px; }
+
+    /* ===== Findings List ===== */
+    .finding-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      margin-bottom: 6px;
+    }
+    .finding-entry .finding-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: var(--accent);
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .finding-entry .finding-detail {
+      flex: 1;
+      font-size: 0.82rem;
+    }
+    .finding-entry .finding-location {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .finding-entry .remove-btn {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0 4px;
+    }
+
+    /* ===== Score Table ===== */
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .score-table th {
+      text-align: left;
+      padding: 6px 10px;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+    }
+    .score-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .score-table .score-val {
+      font-family: var(--font-mono);
+      text-align: right;
+      font-weight: 600;
+    }
+    .score-table tr.total-row {
+      font-weight: 700;
+      background: var(--bg-tertiary);
+    }
+    .score-table tr.total-row td { border-top: 2px solid var(--border); }
+
+    /* ===== Matching Table ===== */
+    .match-type {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .match-type.full { background: var(--match-full); color: #000; }
+    .match-type.human-edge { background: var(--match-human); color: #fff; }
+    .match-type.miss { background: var(--match-miss); color: #fff; }
+    .match-type.insight { background: var(--match-insight); color: #000; }
+    .match-type.acknowledged { background: var(--match-full); color: #000; }
+
+    .severity-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    .severity-badge.critical { background: var(--severity-critical); color: #fff; }
+    .severity-badge.high { background: var(--severity-high); color: #fff; }
+    .severity-badge.medium { background: var(--severity-medium); color: #000; }
+    .severity-badge.low { background: var(--severity-low); color: #fff; }
+
+    /* ===== Dispute Panel ===== */
+    .dispute-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      margin-bottom: 8px;
+    }
+    .dispute-item .dispute-info { flex: 1; }
+    .dispute-item .dispute-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* ===== Scout Finding Card ===== */
+    .scout-finding {
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      margin-bottom: 8px;
+      border-left: 3px solid var(--border);
+    }
+    .scout-finding.handled { opacity: 0.6; }
+    .scout-finding .sf-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .scout-finding .sf-concern { font-size: 0.85rem; margin-bottom: 8px; }
+    .scout-finding .sf-location {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .scout-finding .sf-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      transition: all var(--transition);
+    }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { filter: brightness(1.15); }
+    .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); }
+    .btn-secondary:hover { background: var(--bg-surface); }
+    .btn-success { background: var(--success); color: #000; border-color: var(--success); }
+    .btn-success:hover { filter: brightness(1.15); }
+    .btn-warning { background: var(--warning); color: #000; border-color: var(--warning); }
+    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-sm { padding: 3px 8px; font-size: 0.72rem; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ===== View Toggle ===== */
+    .toggle-group {
+      display: inline-flex;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .toggle-option {
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: none;
+      transition: all var(--transition);
+    }
+    .toggle-option.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ===== Overlays ===== */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-primary);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+    }
+
+    /* ===== Welcome Screen ===== */
+    .welcome-content {
+      text-align: center;
+      max-width: 700px;
+      padding: 40px;
+    }
+    .welcome-content h1 {
+      font-family: var(--font-heading);
+      font-size: 2.2rem;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .welcome-content .subtitle {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+    .welcome-content h2 {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    .theme-cards {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    .theme-card {
+      width: 190px;
+      padding: 20px 16px;
+      border-radius: var(--radius);
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: all var(--transition);
+      background: var(--bg-secondary);
+    }
+    .theme-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+    .theme-card.selected { border-color: var(--accent); box-shadow: 0 0 20px rgba(233,69,96,0.3); }
+    .theme-card h3 { font-size: 1rem; margin-bottom: 6px; }
+    .theme-card .titles {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ===== Session Summary ===== */
+    .summary-content {
+      max-width: 700px;
+      width: 100%;
+      padding: 40px;
+    }
+    .summary-content h1 {
+      font-family: var(--font-heading);
+      font-size: 1.8rem;
+      color: var(--accent);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .summary-section {
+      margin-bottom: 20px;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+    }
+    .summary-section h3 {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .xp-bar {
+      width: 100%;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--bg-tertiary);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .xp-bar-fill {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+      transition: width 1s ease;
+    }
+
+    .level-up {
+      text-align: center;
+      padding: 20px;
+      background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-surface));
+      border-radius: var(--radius);
+      border: 2px solid var(--accent-secondary);
+      margin-bottom: 16px;
+    }
+    .level-up h2 {
+      font-family: var(--font-heading);
+      color: var(--accent-secondary);
+      font-size: 1.4rem;
+    }
+
+    .badge-display {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .badge-card {
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-card.earned { border-color: var(--accent-secondary); }
+    .badge-card.missed { opacity: 0.5; }
+    .badge-card .badge-label { font-weight: 600; }
+    .badge-card .badge-reason { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* ===== Finding Popover ===== */
+    #finding-popover {
+      position: fixed;
+      z-index: 150;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      width: 300px;
+    }
+    #finding-popover label {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+      margin-top: 8px;
+    }
+    #finding-popover label:first-child { margin-top: 0; }
+    #finding-popover input, #finding-popover textarea, #finding-popover select {
+      width: 100%;
+      padding: 4px 8px;
+      font-size: 0.82rem;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+    }
+    #finding-popover textarea { min-height: 50px; resize: vertical; }
+    #finding-popover .popover-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ===== Dispute Modal ===== */
+    .dispute-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 160;
+    }
+    .dispute-modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      width: 380px;
+      box-shadow: var(--shadow);
+    }
+    .dispute-modal h3 { font-size: 0.95rem; margin-bottom: 12px; }
+    .dispute-modal textarea {
+      width: 100%;
+      min-height: 60px;
+      padding: 6px 8px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      resize: vertical;
+      margin-bottom: 10px;
+    }
+    .dispute-modal .honor-check {
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+    }
+    .dispute-modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* ===== Animations ===== */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .animate-fade { animation: fadeIn 0.3s ease; }
+    .animate-slide { animation: slideUp 0.3s ease; }
+    .animate-pulse { animation: pulse 0.5s ease; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 900px) {
+      :root { --sidebar-width: 240px; }
+    }
+    @media (max-width: 700px) {
+      #game-container { grid-template-columns: 1fr; }
+      #sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== WELCOME SCREEN ==================== -->
+  <div id="welcome-screen" class="overlay hidden">
+    <div class="welcome-content animate-slide">
+      <h1>Review Tower</h1>
+      <p class="subtitle">Gamified Code Review</p>
+      <h2>Choose Your Title Theme</h2>
+      <div class="theme-cards">
+        <div class="theme-card" data-theme-choice="medieval">
+          <h3>Medieval</h3>
+          <div class="titles">Squire &rarr; Knight &rarr; Paladin &rarr; Champion &rarr; Warden &rarr; Archmage</div>
+        </div>
+        <div class="theme-card" data-theme-choice="cyberpunk">
+          <h3>Cyberpunk</h3>
+          <div class="titles">Script Kiddie &rarr; Hacker &rarr; Netrunner &rarr; Architect &rarr; Ghost &rarr; AI Overlord</div>
+        </div>
+        <div class="theme-card" data-theme-choice="academic">
+          <h3>Academic</h3>
+          <div class="titles">Intern &rarr; Analyst &rarr; Researcher &rarr; Senior Researcher &rarr; Principal &rarr; Distinguished Fellow</div>
+        </div>
+      </div>
+      <button id="welcome-start-btn" class="btn btn-primary" disabled>Start Climbing</button>
+    </div>
+  </div>
+
+  <!-- ==================== GAME CONTAINER ==================== -->
+  <div id="game-container" class="hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div class="tower-header">
+        <h1>Review Tower</h1>
+        <div class="pr-title" id="pr-title-display"></div>
+        <div class="complexity-badge" id="complexity-display"></div>
+      </div>
+
+      <div class="tower-floors" id="tower-floors"></div>
+
+      <div class="sidebar-stats">
+        <div class="xp-display" id="session-xp-display">0 XP</div>
+        <div class="tier-display" id="tier-display"></div>
+        <div class="badge-row" id="sidebar-badges"></div>
+      </div>
+
+      <div class="sidebar-controls">
+        <button id="export-btn">Export to Claude</button>
+        <button id="finish-btn" style="margin-top:4px">Finish Session</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div id="main-content">
+      <div id="idle-message">
+        <div class="icon">&#x1F3F0;</div>
+        <p>Select a floor to begin your review</p>
+      </div>
+
+      <!-- Mode Selection Modal -->
+      <div id="mode-select-modal" class="hidden">
+        <div class="mode-card-container animate-slide">
+          <div class="mode-card" data-mode="challenge">
+            <h3>Challenge</h3>
+            <div class="multiplier">2.0x</div>
+            <p>Review independently, then compare with AI findings</p>
+          </div>
+          <div class="mode-card" data-mode="scout">
+            <h3>Scout</h3>
+            <div class="multiplier">1.0x</div>
+            <p>See AI findings upfront, acknowledge or dispute each one</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review Area -->
+      <div id="review-area" class="hidden">
+        <div id="review-toolbar">
+          <span class="floor-title" id="floor-title"></span>
+          <span class="phase-badge" id="phase-badge">Review</span>
+          <div class="toggle-group" id="view-toggle">
+            <button class="toggle-option active" data-view="side-by-side">Split</button>
+            <button class="toggle-option" data-view="line-by-line">Unified</button>
+          </div>
+        </div>
+        <div id="file-tabs"></div>
+        <div id="diff-container"></div>
+        <div id="bottom-panel"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SESSION SUMMARY ==================== -->
+  <div id="summary-overlay" class="overlay hidden">
+    <div class="summary-content animate-slide" id="summary-content"></div>
+  </div>
+
+  <!-- ==================== FINDING POPOVER ==================== -->
+  <div id="finding-popover" class="hidden">
+    <label>File</label>
+    <input type="text" id="pop-file" readonly>
+    <label>Lines</label>
+    <input type="text" id="pop-lines" readonly>
+    <label>Notes</label>
+    <textarea id="pop-notes" placeholder="Describe the concern..."></textarea>
+    <div class="popover-actions">
+      <button class="btn btn-sm btn-secondary" id="pop-cancel">Cancel</button>
+      <button class="btn btn-sm btn-primary" id="pop-add">Add Finding</button>
+    </div>
+  </div>
+
+  <!-- CDN Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js"></script>
+
+  <script>
+  'use strict';
+
+  // ================================================================
+  // DATA INJECTION
+  // ================================================================
+  var TOWER_DATA = '__TOWER_DATA__';
+
+  // ================================================================
+  // CONSTANTS
+  // ================================================================
+  const SEVERITY_POINTS = { CRITICAL: 100, HIGH: 50, MEDIUM: 20, LOW: 5 };
+  const MODE_MULTIPLIERS = { challenge: 2.0, scout: 1.0 };
+  const DIFFICULTY_MULTIPLIERS = { Easy: 0.8, Normal: 1.0, Boss: 1.5 };
+  const TIER_THRESHOLDS = [
+    { tier: 6, xp: 50000 },
+    { tier: 5, xp: 15000 },
+    { tier: 4, xp: 5000 },
+    { tier: 3, xp: 2000 },
+    { tier: 2, xp: 500 },
+    { tier: 1, xp: 0 }
+  ];
+  const THEME_TITLES = {
+    medieval: ['Squire', 'Knight', 'Paladin', 'Champion', 'Warden', 'Archmage'],
+    cyberpunk: ['Script Kiddie', 'Hacker', 'Netrunner', 'Architect', 'Ghost', 'AI Overlord'],
+    academic: ['Intern', 'Analyst', 'Researcher', 'Senior Researcher', 'Principal', 'Distinguished Fellow']
+  };
+  const BADGE_DEFS = {
+    bug_hunter:    { icon: '\u{1F41B}', label: 'Bug Hunter' },
+    sentinel:      { icon: '\u{1F6E1}', label: 'Sentinel' },
+    eagle_eye:     { icon: '\u{1F985}', label: 'Eagle Eye' },
+    truth_seeker:  { icon: '\u{1F50D}', label: 'Truth Seeker' },
+    deep_diver:    { icon: '\u{1F30A}', label: 'Deep Diver' },
+    lone_wolf:     { icon: '\u{1F43A}', label: 'Lone Wolf' },
+    perfectionist: { icon: '\u{2B50}',  label: 'Perfectionist' }
+  };
+  const HIGHLIGHT_LINE_CAP = 20;
+  const HISTORY_CAP = 100;
+  const STORAGE_KEY = 'review_tower_stats';
+
+  // ================================================================
+  // STATE
+  // ================================================================
+  var state = {
+    phase: 'init',
+    data: null,
+    stats: null,
+    currentFloorId: null,
+    currentMode: null,
+    currentFileIndex: 0,
+    viewFormat: 'side-by-side',
+    reviewerFindings: [],
+    matchResults: null,
+    disputes: {},
+    scoutDecisions: {},
+    floorResults: {},
+    sessionXP: 0,
+    sessionBadges: [],
+    gutterStartLine: null,
+    gutterStartFile: null,
+    popoverTarget: null,
+    hasExported: false,
+    beforeUnloadBound: false,
+    tabLockKey: null
+  };
+
+  // ================================================================
+  // STORAGE (localStorage with graceful degradation)
+  // ================================================================
+  const storage = {
+    available: false,
+    init() {
+      try {
+        localStorage.setItem('__rt_test', '1');
+        localStorage.removeItem('__rt_test');
+        this.available = true;
+      } catch { this.available = false; }
+    },
+    get(key) {
+      if (!this.available) return null;
+      try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+    },
+    set(key, val) {
+      if (!this.available) return;
+      try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* quota exceeded, ignore */ }
+    }
+  };
+
+  function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+
+  function createDefaultStats(theme) {
+    return {
+      version: 1,
+      reviewer_id: generateUUID(),
+      title_theme: theme,
+      current_title: THEME_TITLES[theme][0],
+      current_tier: 1,
+      total_xp: 0,
+      sessions: { total: 0, towers_completed: 0, towers_partial: 0, floors_reviewed: 0 },
+      findings: { total: 0, by_severity: { critical: 0, high: 0, medium: 0, low: 0 }, human_edge: 0, disputes_made: 0, disputes_correct: 0 },
+      modes: { challenge_floors: 0, scout_floors: 0 },
+      badges: { bug_hunter: 0, sentinel: 0, eagle_eye: 0, truth_seeker: 0, deep_diver: 0, lone_wolf: 0, perfectionist: 0 },
+      history: []
+    };
+  }
+
+  function getTierFromXP(xp) {
+    for (const t of TIER_THRESHOLDS) { if (xp >= t.xp) return t.tier; }
+    return 1;
+  }
+  function getTitleFromTier(theme, tier) { return THEME_TITLES[theme][tier - 1] || THEME_TITLES[theme][0]; }
+  function getNextTierThreshold(tier) {
+    const idx = TIER_THRESHOLDS.findIndex(t => t.tier === tier);
+    return idx > 0 ? TIER_THRESHOLDS[idx - 1].xp : null;
+  }
+
+  // ================================================================
+  // GAME ENGINE
+  // ================================================================
+  function startGame() {
+    state.data = typeof TOWER_DATA === 'string' ? JSON.parse(TOWER_DATA) : TOWER_DATA;
+    storage.init();
+
+    let stats = storage.get(STORAGE_KEY);
+    if (!stats && state.data.existingStats) {
+      stats = state.data.existingStats;
+      storage.set(STORAGE_KEY, stats);
+    }
+
+    if (!stats) {
+      showWelcome();
+      return;
+    }
+
+    state.stats = stats;
+    enterGame();
+  }
+
+  function showWelcome() {
+    state.phase = 'welcome';
+    document.getElementById('welcome-screen').classList.remove('hidden');
+    document.getElementById('game-container').classList.add('hidden');
+  }
+
+  function initWithTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    state.stats = createDefaultStats(theme);
+    storage.set(STORAGE_KEY, state.stats);
+    document.getElementById('welcome-screen').classList.add('hidden');
+    enterGame();
+  }
+
+  function enterGame() {
+    document.documentElement.setAttribute('data-theme', state.stats.title_theme || 'medieval');
+    state.phase = 'idle';
+    document.getElementById('game-container').classList.remove('hidden');
+    document.getElementById('welcome-screen').classList.add('hidden');
+    buildSidebar();
+    showIdle();
+    bindBeforeUnload();
+  }
+
+  function selectFloor(floorId) {
+    // If already revisiting this floor, or clicking during revisit, return to idle
+    if (state.phase === 'revisit') {
+      const wasFloor = state.currentFloorId;
+      returnFromRevisit();
+      if (floorId === wasFloor) return;
+    }
+
+    // Completed floor → enter read-only revisit
+    if (state.floorResults[floorId]) {
+      enterRevisit(floorId);
+      return;
+    }
+
+    // Uncompleted floor → mode selection
+    state.currentFloorId = floorId;
+    showModeSelect();
+  }
+
+  function enterRevisit(floorId) {
+    state.currentFloorId = floorId;
+    state.currentFileIndex = 0;
+    state.phase = 'revisit';
+
+    document.getElementById('idle-message').classList.add('hidden');
+    document.getElementById('mode-select-modal').classList.add('hidden');
+    document.getElementById('review-area').classList.remove('hidden');
+
+    const floor = getFloor(floorId);
+    const result = state.floorResults[floorId];
+    document.getElementById('floor-title').textContent =
+      `Floor ${floor.id}: ${floor.name} (${floor.difficulty}) — Revisit`;
+    setPhaseBadge('Revisit', 'var(--text-muted)');
+
+    renderFileTabs(floor);
+    renderCurrentDiff(floor);
+    highlightRevisitFindings(floor, result);
+    showRevisitBottomPanel(floor, result);
+    updateSidebar();
+  }
+
+  function returnFromRevisit() {
+    state.phase = 'idle';
+    state.currentFloorId = null;
+    document.getElementById('review-area').classList.add('hidden');
+    document.getElementById('bottom-panel').innerHTML = '';
+    document.getElementById('diff-container').innerHTML = '';
+    document.getElementById('file-tabs').innerHTML = '';
+    showIdle();
+    updateSidebar();
+  }
+
+  function highlightRevisitFindings(floor, result) {
+    clearAllHighlights();
+    if (result.mode === 'challenge' && result.matchResults) {
+      const mr = result.matchResults;
+      const currentFile = floor.diffs[state.currentFileIndex]?.file;
+      mr.fullMatches.forEach(m => {
+        if (m.aiFinding.file === currentFile) {
+          applyLineHighlight(m.aiFinding.file, m.aiFinding.startLine, m.aiFinding.endLine, 'hl-matched', 'Match');
+        }
+      });
+      mr.humanEdge.forEach(h => {
+        if (h.file === currentFile) {
+          applyLineHighlight(h.file, h.startLine, h.endLine, 'hl-reviewer', 'H.Edge');
+        }
+      });
+      mr.misses.forEach(m => {
+        if (m.file === currentFile) {
+          applyLineHighlight(m.file, m.startLine, m.endLine, 'hl-ai', 'Miss');
+        }
+      });
+    } else if (result.mode === 'scout') {
+      const currentFile = floor.diffs[state.currentFileIndex]?.file;
+      floor.findings
+        .filter(f => f.file === currentFile)
+        .forEach(f => {
+          applyLineHighlight(f.file, f.startLine, f.endLine, 'hl-ai', `AI#${f.id} ${f.severity}`);
+        });
+    }
+  }
+
+  function showRevisitBottomPanel(floor, result) {
+    const bp = document.getElementById('bottom-panel');
+    let html = `<div class="panel-header"><h3>Floor ${floor.id} Results (${capitalize(result.mode)} mode)</h3></div><div class="panel-content">`;
+
+    if (result.mode === 'challenge' && result.matchResults) {
+      const mr = result.matchResults;
+
+      if (mr.fullMatches.length > 0) {
+        html += `<h4 style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:6px">Full Matches</h4>`;
+        mr.fullMatches.forEach(m => {
+          html += `<div class="finding-entry">
+            <span class="severity-badge ${m.aiFinding.severity.toLowerCase()}">${m.aiFinding.severity}</span>
+            <div class="finding-detail">
+              <div>${m.aiFinding.concern}</div>
+              <div class="finding-location">${m.aiFinding.file} : ${m.aiFinding.startLine}-${m.aiFinding.endLine}</div>
+            </div>
+            <span class="match-type full">Full Match</span>
+          </div>`;
+        });
+      }
+
+      if (mr.humanEdge.length > 0) {
+        html += `<h4 style="font-size:0.82rem;color:var(--text-secondary);margin:10px 0 6px">Human Edge</h4>`;
+        mr.humanEdge.forEach(h => {
+          html += `<div class="finding-entry">
+            <span class="severity-badge medium">REVIEWER</span>
+            <div class="finding-detail">
+              <div>${h.notes || 'Lines ' + h.startLine + '-' + h.endLine}</div>
+              <div class="finding-location">${h.file} : ${h.startLine}-${h.endLine}</div>
+            </div>
+            <span class="match-type human-edge">Human Edge</span>
+          </div>`;
+        });
+      }
+
+      if (mr.misses.length > 0) {
+        html += `<h4 style="font-size:0.82rem;color:var(--text-secondary);margin:10px 0 6px">Misses</h4>`;
+        mr.misses.forEach(m => {
+          html += `<div class="finding-entry">
+            <span class="severity-badge ${m.severity.toLowerCase()}">${m.severity}</span>
+            <div class="finding-detail">
+              <div>${m.concern}</div>
+              <div class="finding-location">${m.file} : ${m.startLine}-${m.endLine}</div>
+            </div>
+            <span class="match-type miss">Miss</span>
+          </div>`;
+        });
+      }
+    } else if (result.mode === 'scout') {
+      floor.findings.forEach(f => {
+        const dec = result.scoutDecisions[f.id];
+        if (!dec) return;
+        const label = dec.type === 'acknowledge' ? 'Acknowledged' :
+          (dec.type === 'dispute' && dec.valid) ? 'Insight' : 'Invalid Dispute';
+        const labelClass = dec.type === 'acknowledge' ? 'acknowledged' :
+          (dec.type === 'dispute' && dec.valid) ? 'insight' : 'miss';
+        html += `<div class="finding-entry">
+          <span class="severity-badge ${f.severity.toLowerCase()}">${f.severity}</span>
+          <div class="finding-detail">
+            <div>${f.concern}</div>
+            <div class="finding-location">${f.file} : ${f.startLine}-${f.endLine}</div>
+          </div>
+          <span class="match-type ${labelClass}">${label}</span>
+        </div>`;
+      });
+    }
+
+    html += `<div style="margin-top:12px;text-align:right;border-top:1px solid var(--border);padding-top:10px">
+      <strong style="font-family:var(--font-mono);color:var(--accent-secondary)">Floor Score: ${result.score}</strong>
+    </div>`;
+    html += `</div>`;
+    bp.innerHTML = html;
+  }
+
+  function startFloor(mode) {
+    state.currentMode = mode;
+    state.reviewerFindings = [];
+    state.matchResults = null;
+    state.disputes = {};
+    state.scoutDecisions = {};
+    state.currentFileIndex = 0;
+    state.gutterStartLine = null;
+    state.gutterStartFile = null;
+
+    hideModeSelect();
+    document.getElementById('idle-message').classList.add('hidden');
+    document.getElementById('review-area').classList.remove('hidden');
+
+    const floor = getFloor(state.currentFloorId);
+    document.getElementById('floor-title').textContent =
+      `Floor ${floor.id}: ${floor.name} (${floor.difficulty})`;
+
+    if (mode === 'challenge') {
+      startChallengeReview();
+    } else {
+      startScoutReview();
+    }
+    updateSidebar();
+  }
+
+  function getFloor(id) {
+    return state.data.tower.floors.find(f => f.id === id);
+  }
+
+  // ================================================================
+  // CHALLENGE MODE
+  // ================================================================
+  function startChallengeReview() {
+    state.phase = 'challenge-review';
+    setPhaseBadge('Review', 'var(--info)');
+    const floor = getFloor(state.currentFloorId);
+    renderFileTabs(floor);
+    renderCurrentDiff(floor);
+    showChallengeInput();
+    document.getElementById('diff-container').classList.add('finding-input-active');
+  }
+
+  function showChallengeInput() {
+    const bp = document.getElementById('bottom-panel');
+    bp.innerHTML = `
+      <div class="panel-header">
+        <h3>Your Findings</h3>
+        <div>
+          <button class="btn btn-sm btn-secondary" id="no-findings-btn">No Findings</button>
+          <button class="btn btn-sm btn-primary" id="done-findings-btn">Done</button>
+        </div>
+      </div>
+      <div class="panel-content" id="findings-list">
+        <p style="color:var(--text-muted);font-size:0.82rem">
+          Highlight lines in the diff to mark findings. Use text selection or click the + buttons in the gutter.
+        </p>
+      </div>
+    `;
+    document.getElementById('done-findings-btn').addEventListener('click', submitChallengeFindings);
+    document.getElementById('no-findings-btn').addEventListener('click', submitChallengeFindings);
+  }
+
+  function addReviewerFinding(file, startLine, endLine, notes) {
+    const finding = { id: state.reviewerFindings.length + 1, file, startLine, endLine, notes: notes || '' };
+    state.reviewerFindings.push(finding);
+    renderFindingsList();
+    highlightReviewerFinding(finding);
+  }
+
+  function removeReviewerFinding(idx) {
+    state.reviewerFindings.splice(idx, 1);
+    state.reviewerFindings.forEach((f, i) => f.id = i + 1);
+    renderFindingsList();
+    clearAllHighlights();
+    state.reviewerFindings.forEach(f => highlightReviewerFinding(f));
+  }
+
+  function renderFindingsList() {
+    const list = document.getElementById('findings-list');
+    if (!list) return;
+    if (state.reviewerFindings.length === 0) {
+      list.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem">Highlight lines in the diff to mark findings.</p>';
+      return;
+    }
+    list.innerHTML = state.reviewerFindings.map((f, i) => `
+      <div class="finding-entry animate-fade">
+        <span class="finding-num">${f.id}</span>
+        <div class="finding-detail">
+          <div>${f.notes || '<em>No notes</em>'}</div>
+          <div class="finding-location">${f.file} : ${f.startLine}-${f.endLine}</div>
+        </div>
+        <button class="remove-btn" data-idx="${i}">&times;</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', () => removeReviewerFinding(parseInt(btn.dataset.idx)));
+    });
+  }
+
+  function submitChallengeFindings() {
+    state.phase = 'challenge-reveal';
+    setPhaseBadge('AI Reveal', 'var(--accent-secondary)');
+    document.getElementById('diff-container').classList.remove('finding-input-active');
+    hidePopover();
+
+    const floor = getFloor(state.currentFloorId);
+    state.matchResults = matchFindings(state.reviewerFindings, floor.findings);
+    showChallengeReveal(floor);
+  }
+
+  function showChallengeReveal(floor) {
+    clearAllHighlights();
+    highlightMatchResults(floor);
+
+    const bp = document.getElementById('bottom-panel');
+    let html = `<div class="panel-header"><h3>Matching Results</h3></div><div class="panel-content">`;
+    html += renderMatchingTable(state.matchResults);
+    html += `<div style="margin-top:12px;text-align:right">
+      <button class="btn btn-primary" id="to-dispute-btn">Continue to Disputes</button>
+    </div></div>`;
+    bp.innerHTML = html;
+    document.getElementById('to-dispute-btn').addEventListener('click', startDisputePhase);
+  }
+
+  function startDisputePhase() {
+    state.phase = 'challenge-dispute';
+    setPhaseBadge('Disputes', 'var(--warning)');
+    const floor = getFloor(state.currentFloorId);
+    const aiFindingsForDispute = floor.findings;
+
+    if (aiFindingsForDispute.length === 0) {
+      finishFloor();
+      return;
+    }
+
+    const bp = document.getElementById('bottom-panel');
+    let html = `<div class="panel-header"><h3>Dispute AI Findings</h3>
+      <button class="btn btn-sm btn-primary" id="skip-disputes-btn">Skip / Done</button>
+    </div><div class="panel-content">
+      <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:10px">
+        Think any AI findings are false positives? Dispute them for bonus points.
+      </p>`;
+
+    aiFindingsForDispute.forEach(f => {
+      const alreadyDisputed = state.disputes[f.id] !== undefined;
+      html += `
+        <div class="dispute-item" id="dispute-${f.id}">
+          <div class="dispute-info">
+            <div><span class="severity-badge ${f.severity.toLowerCase()}">${f.severity}</span> ${f.concern}</div>
+            <div class="finding-location">${f.file} : ${f.startLine}-${f.endLine}</div>
+          </div>
+          <div class="dispute-actions">
+            ${alreadyDisputed ? '<span style="font-size:0.8rem;color:var(--text-muted)">Resolved</span>' :
+              `<button class="btn btn-sm btn-warning dispute-btn" data-finding-id="${f.id}">Dispute</button>`
+            }
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+    bp.innerHTML = html;
+
+    bp.querySelectorAll('.dispute-btn').forEach(btn => {
+      btn.addEventListener('click', () => openDisputeModal(parseInt(btn.dataset.findingId)));
+    });
+    document.getElementById('skip-disputes-btn').addEventListener('click', finishFloor);
+  }
+
+  function openDisputeModal(findingId) {
+    const floor = getFloor(state.currentFloorId);
+    const finding = floor.findings.find(f => f.id === findingId);
+    const overlay = document.createElement('div');
+    overlay.className = 'dispute-modal-overlay';
+    overlay.innerHTML = `
+      <div class="dispute-modal animate-slide">
+        <h3>Dispute: ${finding.concern}</h3>
+        <textarea id="dispute-reason" placeholder="Reason (optional)..."></textarea>
+        <div class="honor-check">Do you genuinely believe this is a false positive?</div>
+        <div class="modal-actions">
+          <button class="btn btn-sm btn-secondary" id="dispute-cancel">Cancel</button>
+          <button class="btn btn-sm btn-danger" id="dispute-invalid">No (Not Valid)</button>
+          <button class="btn btn-sm btn-success" id="dispute-valid">Yes (Valid Dispute)</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#dispute-cancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#dispute-invalid').addEventListener('click', () => {
+      state.disputes[findingId] = { valid: false, reason: overlay.querySelector('#dispute-reason').value };
+      overlay.remove();
+      markDisputeResolved(findingId);
+    });
+    overlay.querySelector('#dispute-valid').addEventListener('click', () => {
+      state.disputes[findingId] = { valid: true, reason: overlay.querySelector('#dispute-reason').value };
+      overlay.remove();
+      markDisputeResolved(findingId);
+    });
+  }
+
+  function markDisputeResolved(findingId) {
+    const item = document.getElementById(`dispute-${findingId}`);
+    if (item) {
+      const actions = item.querySelector('.dispute-actions');
+      const d = state.disputes[findingId];
+      actions.innerHTML = d.valid
+        ? '<span style="color:var(--success);font-size:0.8rem;font-weight:600">Insight Earned</span>'
+        : '<span style="color:var(--text-muted);font-size:0.8rem">No Bonus</span>';
+    }
+  }
+
+  // ================================================================
+  // SCOUT MODE
+  // ================================================================
+  function startScoutReview() {
+    state.phase = 'scout-review';
+    setPhaseBadge('Scout', 'var(--accent-tertiary)');
+    const floor = getFloor(state.currentFloorId);
+    renderFileTabs(floor);
+    renderCurrentDiff(floor);
+    highlightAIFindings(floor);
+    showScoutPanel(floor);
+  }
+
+  function showScoutPanel(floor) {
+    const bp = document.getElementById('bottom-panel');
+    if (floor.findings.length === 0) {
+      bp.innerHTML = `
+        <div class="panel-header"><h3>AI Findings</h3></div>
+        <div class="panel-content">
+          <p style="color:var(--text-muted)">Clean code! No AI findings for this floor.</p>
+          <button class="btn btn-primary" id="scout-done-btn" style="margin-top:8px">Complete Floor</button>
+        </div>`;
+      document.getElementById('scout-done-btn').addEventListener('click', finishFloor);
+      return;
+    }
+
+    let html = `<div class="panel-header"><h3>AI Findings (${floor.findings.length})</h3>
+      <span id="scout-progress" style="font-size:0.8rem;color:var(--text-muted)">0/${floor.findings.length} handled</span>
+    </div><div class="panel-content">`;
+
+    floor.findings.forEach(f => {
+      html += `
+        <div class="scout-finding" id="scout-finding-${f.id}" data-finding-id="${f.id}">
+          <div class="sf-header">
+            <span class="severity-badge ${f.severity.toLowerCase()}">${f.severity}</span>
+            <span style="font-size:0.72rem;color:var(--text-muted)">${f.category}</span>
+          </div>
+          <div class="sf-concern">${f.concern}</div>
+          <div class="sf-location">${f.file} : ${f.startLine}-${f.endLine}</div>
+          <div class="sf-actions">
+            <button class="btn btn-sm btn-success scout-ack" data-fid="${f.id}">Acknowledge</button>
+            <button class="btn btn-sm btn-warning scout-dispute" data-fid="${f.id}">Dispute</button>
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+    bp.innerHTML = html;
+
+    bp.querySelectorAll('.scout-ack').forEach(btn => {
+      btn.addEventListener('click', () => handleScoutAck(parseInt(btn.dataset.fid)));
+    });
+    bp.querySelectorAll('.scout-dispute').forEach(btn => {
+      btn.addEventListener('click', () => handleScoutDispute(parseInt(btn.dataset.fid)));
+    });
+  }
+
+  function handleScoutAck(findingId) {
+    state.scoutDecisions[findingId] = { type: 'acknowledge' };
+    markScoutHandled(findingId, 'Acknowledged');
+    checkScoutComplete();
+  }
+
+  function handleScoutDispute(findingId) {
+    const floor = getFloor(state.currentFloorId);
+    const finding = floor.findings.find(f => f.id === findingId);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'dispute-modal-overlay';
+    overlay.innerHTML = `
+      <div class="dispute-modal animate-slide">
+        <h3>Dispute: ${finding.concern}</h3>
+        <textarea id="scout-dispute-reason" placeholder="Reason (optional)..."></textarea>
+        <div class="honor-check">Do you genuinely believe this is a false positive?</div>
+        <div class="modal-actions">
+          <button class="btn btn-sm btn-secondary" id="sd-cancel">Cancel</button>
+          <button class="btn btn-sm btn-danger" id="sd-invalid">No (Not Valid)</button>
+          <button class="btn btn-sm btn-success" id="sd-valid">Yes (Valid Dispute)</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#sd-cancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#sd-invalid').addEventListener('click', () => {
+      state.scoutDecisions[findingId] = { type: 'dispute', valid: false };
+      overlay.remove();
+      markScoutHandled(findingId, 'Invalid Dispute');
+      checkScoutComplete();
+    });
+    overlay.querySelector('#sd-valid').addEventListener('click', () => {
+      state.scoutDecisions[findingId] = { type: 'dispute', valid: true };
+      overlay.remove();
+      markScoutHandled(findingId, 'Insight Earned');
+      checkScoutComplete();
+    });
+  }
+
+  function markScoutHandled(findingId, label) {
+    const card = document.getElementById(`scout-finding-${findingId}`);
+    if (card) {
+      card.classList.add('handled');
+      const actions = card.querySelector('.sf-actions');
+      const isPositive = label.includes('Acknowledged') || label.includes('Insight');
+      actions.innerHTML = `<span style="font-size:0.8rem;font-weight:600;color:${isPositive ? 'var(--success)' : 'var(--text-muted)'}">${label}</span>`;
+    }
+    const floor = getFloor(state.currentFloorId);
+    const handled = Object.keys(state.scoutDecisions).length;
+    const progress = document.getElementById('scout-progress');
+    if (progress) progress.textContent = `${handled}/${floor.findings.length} handled`;
+  }
+
+  function checkScoutComplete() {
+    const floor = getFloor(state.currentFloorId);
+    if (Object.keys(state.scoutDecisions).length >= floor.findings.length) {
+      const bp = document.getElementById('bottom-panel');
+      const footer = document.createElement('div');
+      footer.style.cssText = 'padding:12px 16px;text-align:right;border-top:1px solid var(--border)';
+      footer.innerHTML = '<button class="btn btn-primary" id="scout-finish">View Score</button>';
+      bp.appendChild(footer);
+      document.getElementById('scout-finish').addEventListener('click', finishFloor);
+    }
+  }
+
+  // ================================================================
+  // FLOOR COMPLETION
+  // ================================================================
+  function finishFloor() {
+    const floor = getFloor(state.currentFloorId);
+    const floorMult = DIFFICULTY_MULTIPLIERS[floor.difficulty];
+    const modeMult = MODE_MULTIPLIERS[state.currentMode];
+    let floorScore = 0;
+    const scoreRows = [];
+
+    if (state.currentMode === 'challenge') {
+      const mr = state.matchResults;
+
+      mr.fullMatches.forEach(m => {
+        const base = SEVERITY_POINTS[m.aiFinding.severity];
+        const score = Math.max(1, Math.round(base * floorMult * modeMult));
+        floorScore += score;
+        scoreRows.push({ desc: m.aiFinding.concern, severity: m.aiFinding.severity, type: 'Full Match', score });
+      });
+
+      mr.humanEdge.forEach(h => {
+        const sev = 'MEDIUM';
+        const base = SEVERITY_POINTS[sev];
+        const score = Math.max(1, Math.round(base * floorMult * modeMult * 1.5));
+        floorScore += score;
+        scoreRows.push({ desc: h.notes || `Lines ${h.startLine}-${h.endLine}`, severity: sev, type: 'Human Edge', score });
+      });
+
+      Object.entries(state.disputes).forEach(([fid, d]) => {
+        if (d.valid) {
+          const f = floor.findings.find(af => af.id === parseInt(fid));
+          if (f) {
+            const base = SEVERITY_POINTS[f.severity];
+            const score = Math.max(1, Math.round(base * 0.75));
+            floorScore += score;
+            scoreRows.push({ desc: `Dispute: ${f.concern}`, severity: f.severity, type: 'Insight', score });
+          }
+        }
+      });
+
+      mr.misses.forEach(m => {
+        scoreRows.push({ desc: m.concern, severity: m.severity, type: 'Miss', score: 0 });
+      });
+
+    } else {
+      const floor2 = getFloor(state.currentFloorId);
+      floor2.findings.forEach(f => {
+        const dec = state.scoutDecisions[f.id];
+        if (!dec) return;
+
+        if (dec.type === 'acknowledge') {
+          const base = SEVERITY_POINTS[f.severity];
+          const score = Math.max(1, Math.round(base * floorMult * modeMult));
+          floorScore += score;
+          scoreRows.push({ desc: f.concern, severity: f.severity, type: 'Acknowledged', score });
+        } else if (dec.type === 'dispute') {
+          if (dec.valid) {
+            const base = SEVERITY_POINTS[f.severity];
+            const score = Math.max(1, Math.round(base * 0.75));
+            floorScore += score;
+            scoreRows.push({ desc: `Dispute: ${f.concern}`, severity: f.severity, type: 'Insight', score });
+          } else {
+            scoreRows.push({ desc: f.concern, severity: f.severity, type: 'Invalid Dispute', score: 0 });
+          }
+        }
+      });
+    }
+
+    state.floorResults[state.currentFloorId] = {
+      mode: state.currentMode,
+      score: floorScore,
+      scoreRows,
+      reviewerFindings: [...state.reviewerFindings],
+      matchResults: state.matchResults,
+      disputes: { ...state.disputes },
+      scoutDecisions: { ...state.scoutDecisions }
+    };
+
+    state.sessionXP = calcSessionXP();
+    state.phase = 'floor-score';
+    setPhaseBadge('Score', 'var(--accent-secondary)');
+    showFloorScore(floor, floorScore, scoreRows);
+    updateSidebar();
+  }
+
+  function calcSessionXP() {
+    const floorTotal = Object.values(state.floorResults).reduce((s, r) => s + r.score, 0);
+    return Math.max(1, Math.round(floorTotal * state.data.tower.complexity.multiplier));
+  }
+
+  function showFloorScore(floor, total, rows) {
+    const bp = document.getElementById('bottom-panel');
+    const modeMult = MODE_MULTIPLIERS[state.currentMode];
+    let html = `
+      <div class="panel-header">
+        <h3>Floor ${floor.id}: ${floor.name} (${floor.difficulty}, ${capitalize(state.currentMode)} ${modeMult}x)</h3>
+      </div>
+      <div class="panel-content">
+        <table class="score-table">
+          <thead><tr><th>Finding</th><th>Severity</th><th>Type</th><th style="text-align:right">Score</th></tr></thead>
+          <tbody>`;
+    rows.forEach(r => {
+      html += `<tr>
+        <td>${r.desc}</td>
+        <td><span class="severity-badge ${r.severity.toLowerCase()}">${r.severity}</span></td>
+        <td><span class="match-type ${r.type.toLowerCase().replace(/\s+/g, '-')}">${r.type}</span></td>
+        <td class="score-val">${r.score}</td>
+      </tr>`;
+    });
+    html += `<tr class="total-row"><td colspan="3">Floor Total</td><td class="score-val">${total}</td></tr>`;
+    html += `</tbody></table>
+      <div style="margin-top:12px;text-align:right">
+        <button class="btn btn-primary" id="continue-btn">Continue</button>
+      </div></div>`;
+    bp.innerHTML = html;
+    document.getElementById('continue-btn').addEventListener('click', returnToIdle);
+  }
+
+  function returnToIdle() {
+    state.phase = 'idle';
+    state.currentFloorId = null;
+    state.currentMode = null;
+    document.getElementById('review-area').classList.add('hidden');
+    document.getElementById('bottom-panel').innerHTML = '';
+    document.getElementById('diff-container').innerHTML = '';
+    document.getElementById('file-tabs').innerHTML = '';
+
+    const allCleared = state.data.tower.floors.every(f => state.floorResults[f.id]);
+    if (allCleared) {
+      finishSession();
+    } else {
+      showIdle();
+    }
+  }
+
+  function finishSession() {
+    state.phase = 'session-summary';
+    state.sessionXP = calcSessionXP();
+    state.sessionBadges = evaluateBadges();
+    updateStats();
+    showSessionSummary();
+  }
+
+  // ================================================================
+  // MATCHING ENGINE (Binary Region-Based)
+  // ================================================================
+  function matchFindings(reviewerFindings, aiFindings) {
+    const usedAI = new Set();
+    const usedReviewer = new Set();
+    const fullMatches = [];
+
+    const sortedReviewer = [...reviewerFindings].sort((a, b) => a.startLine - b.startLine);
+
+    for (const rf of sortedReviewer) {
+      let bestAI = null;
+      let bestSev = -1;
+
+      for (const af of aiFindings) {
+        if (usedAI.has(af.id)) continue;
+        if (rf.file !== af.file) continue;
+        if (rf.startLine <= af.endLine && rf.endLine >= af.startLine) {
+          const sevVal = SEVERITY_POINTS[af.severity] || 0;
+          if (sevVal > bestSev) {
+            bestSev = sevVal;
+            bestAI = af;
+          }
+        }
+      }
+
+      if (bestAI) {
+        fullMatches.push({ reviewerFinding: rf, aiFinding: bestAI });
+        usedAI.add(bestAI.id);
+        usedReviewer.add(rf.id);
+      }
+    }
+
+    const humanEdge = reviewerFindings.filter(rf => !usedReviewer.has(rf.id));
+    const misses = aiFindings.filter(af => !usedAI.has(af.id));
+
+    return { fullMatches, humanEdge, misses };
+  }
+
+  function renderMatchingTable(mr) {
+    let html = '<table class="score-table"><thead><tr><th>#</th><th>Your Finding</th><th>AI Finding</th><th>Result</th></tr></thead><tbody>';
+    let row = 1;
+
+    mr.fullMatches.forEach(m => {
+      html += `<tr>
+        <td>${row++}</td>
+        <td>${m.reviewerFinding.notes || `Lines ${m.reviewerFinding.startLine}-${m.reviewerFinding.endLine}`}</td>
+        <td><span class="severity-badge ${m.aiFinding.severity.toLowerCase()}">${m.aiFinding.severity}</span> ${m.aiFinding.concern}</td>
+        <td><span class="match-type full">Full Match</span></td>
+      </tr>`;
+    });
+
+    mr.humanEdge.forEach(h => {
+      html += `<tr>
+        <td>${row++}</td>
+        <td>${h.notes || `Lines ${h.startLine}-${h.endLine}`}</td>
+        <td style="color:var(--text-muted)">(no match)</td>
+        <td><span class="match-type human-edge">Human Edge</span></td>
+      </tr>`;
+    });
+
+    mr.misses.forEach(m => {
+      html += `<tr>
+        <td>${row++}</td>
+        <td style="color:var(--text-muted)">(not found)</td>
+        <td><span class="severity-badge ${m.severity.toLowerCase()}">${m.severity}</span> ${m.concern}</td>
+        <td><span class="match-type miss">Miss</span></td>
+      </tr>`;
+    });
+
+    html += '</tbody></table>';
+    return html;
+  }
+
+  // ================================================================
+  // SCORING HELPERS
+  // ================================================================
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  // ================================================================
+  // BADGE EVALUATION
+  // ================================================================
+  function evaluateBadges() {
+    const earned = [];
+    const missed = [];
+    const floors = state.data.tower.floors;
+    const results = state.floorResults;
+    const reviewedFloors = Object.keys(results);
+
+    let totalHighCrit = 0;
+    let totalSecurityFindings = 0;
+    let totalScoredFindings = 0;
+    let allChallenge = reviewedFloors.length > 0;
+    let correctDisputes = 0;
+    let allFloorsReviewed = reviewedFloors.length === floors.length;
+    let humanEdgeCount = 0;
+    let hasPerfectFloor = false;
+
+    for (const [fid, res] of Object.entries(results)) {
+      const floor = getFloor(parseInt(fid));
+
+      if (res.mode === 'challenge' && res.matchResults) {
+        const mr = res.matchResults;
+        mr.fullMatches.forEach(m => {
+          totalScoredFindings++;
+          if (m.aiFinding.severity === 'HIGH' || m.aiFinding.severity === 'CRITICAL') totalHighCrit++;
+          if (m.aiFinding.category === 'Security') totalSecurityFindings++;
+        });
+        mr.humanEdge.forEach(() => { totalScoredFindings++; humanEdgeCount++; });
+
+        const floorMisses = mr.misses.length;
+        if (floorMisses === 0) hasPerfectFloor = true;
+
+        Object.values(res.disputes).forEach(d => { if (d.valid) correctDisputes++; });
+      }
+
+      if (res.mode === 'scout') {
+        allChallenge = false;
+        for (const [sfid, dec] of Object.entries(res.scoutDecisions)) {
+          const f = floor.findings.find(af => af.id === parseInt(sfid));
+          if (dec.type === 'acknowledge') {
+            totalScoredFindings++;
+            if (f && (f.severity === 'HIGH' || f.severity === 'CRITICAL')) totalHighCrit++;
+            if (f && f.category === 'Security') totalSecurityFindings++;
+          } else if (dec.type === 'dispute' && dec.valid) {
+            correctDisputes++;
+            totalScoredFindings++;
+          }
+        }
+        const handledCount = Object.keys(res.scoutDecisions).length;
+        if (handledCount >= floor.findings.length && floor.findings.length >= 0) {
+          const missCount = Object.values(res.scoutDecisions).filter(d => d.type === 'dispute' && !d.valid).length;
+          if (missCount === 0) hasPerfectFloor = true;
+        }
+      }
+
+      if (res.mode !== 'challenge') allChallenge = false;
+    }
+
+    const check = (key, cond, reason) => {
+      if (cond) earned.push(key);
+      else missed.push({ key, reason });
+    };
+
+    check('bug_hunter', totalHighCrit >= 3, `Need 3+ HIGH/CRITICAL findings (got ${totalHighCrit})`);
+    check('sentinel', totalScoredFindings > 0 && (totalSecurityFindings / totalScoredFindings) >= 0.5,
+      totalScoredFindings === 0 ? 'No scored findings' : `${Math.round(totalSecurityFindings / totalScoredFindings * 100)}% security (need 50%+)`);
+    check('eagle_eye', allChallenge && reviewedFloors.length > 0, 'Used Scout mode on at least one floor');
+    check('truth_seeker', correctDisputes >= 2, `Need 2+ correct disputes (got ${correctDisputes})`);
+    check('deep_diver', allFloorsReviewed, `Reviewed ${reviewedFloors.length}/${floors.length} floors`);
+    check('lone_wolf', humanEdgeCount >= 3, `Need 3+ Human Edge findings (got ${humanEdgeCount})`);
+    check('perfectionist', hasPerfectFloor, 'No floor with 0 misses');
+
+    return { earned, missed };
+  }
+
+  // ================================================================
+  // STATS UPDATE
+  // ================================================================
+  function updateStats() {
+    if (!state.stats) return;
+    const s = state.stats;
+    const floors = state.data.tower.floors;
+    const results = state.floorResults;
+    const reviewedCount = Object.keys(results).length;
+
+    s.sessions.total++;
+    if (reviewedCount === floors.length) s.sessions.towers_completed++;
+    else if (reviewedCount > 0) s.sessions.towers_partial++;
+    s.sessions.floors_reviewed += reviewedCount;
+
+    for (const res of Object.values(results)) {
+      if (res.mode === 'challenge') {
+        s.modes.challenge_floors++;
+        if (res.matchResults) {
+          res.matchResults.fullMatches.forEach(m => {
+            s.findings.total++;
+            s.findings.by_severity[m.aiFinding.severity.toLowerCase()]++;
+          });
+          res.matchResults.humanEdge.forEach(() => {
+            s.findings.total++;
+            s.findings.human_edge++;
+            s.findings.by_severity.medium++;
+          });
+          Object.values(res.disputes).forEach(d => {
+            s.findings.disputes_made++;
+            if (d.valid) s.findings.disputes_correct++;
+          });
+        }
+      } else {
+        s.modes.scout_floors++;
+        const floor = getFloor(parseInt(Object.keys(results).find(k => results[k] === res)));
+        if (floor) {
+          floor.findings.forEach(f => {
+            const dec = res.scoutDecisions[f.id];
+            if (dec) {
+              if (dec.type === 'acknowledge') {
+                s.findings.total++;
+                s.findings.by_severity[f.severity.toLowerCase()]++;
+              } else if (dec.type === 'dispute') {
+                s.findings.disputes_made++;
+                if (dec.valid) s.findings.disputes_correct++;
+              }
+            }
+          });
+        }
+      }
+    }
+
+    state.sessionBadges.earned.forEach(b => { s.badges[b]++; });
+    s.total_xp += state.sessionXP;
+    s.current_tier = getTierFromXP(s.total_xp);
+    s.current_title = getTitleFromTier(s.title_theme, s.current_tier);
+
+    s.history.unshift({
+      session_id: generateUUID(),
+      pr_ref: state.data.pr.url || `#${state.data.pr.number}`,
+      date: new Date().toISOString().slice(0, 10),
+      xp_earned: state.sessionXP,
+      floors_reviewed: reviewedCount,
+      floors_total: floors.length,
+      completion: reviewedCount === floors.length ? 'full' : reviewedCount > 0 ? 'partial' : 'abandoned',
+      badges: state.sessionBadges.earned
+    });
+    if (s.history.length > HISTORY_CAP) s.history = s.history.slice(0, HISTORY_CAP);
+
+    storage.set(STORAGE_KEY, s);
+  }
+
+  // ================================================================
+  // SESSION SUMMARY
+  // ================================================================
+  function showSessionSummary() {
+    document.getElementById('summary-overlay').classList.remove('hidden');
+    const s = state.stats;
+    const oldTier = getTierFromXP(s.total_xp - state.sessionXP);
+    const newTier = s.current_tier;
+    const nextThreshold = getNextTierThreshold(newTier);
+    const pct = nextThreshold ? Math.min(100, Math.round((s.total_xp / nextThreshold) * 100)) : 100;
+
+    let html = `<h1>Session Complete</h1>`;
+
+    if (newTier > oldTier) {
+      const oldTitle = getTitleFromTier(s.title_theme, oldTier);
+      const newTitle = s.current_title;
+      html += `<div class="level-up animate-pulse">
+        <h2>Level Up!</h2>
+        <p>Tier ${oldTier} &rarr; Tier ${newTier}</p>
+        <p>${oldTitle} &rarr; <strong>${newTitle}</strong></p>
+      </div>`;
+    }
+
+    // Findings section (above scores)
+    html += `<div class="summary-section"><h3>Findings</h3>`;
+    let hasFindings = false;
+    state.data.tower.floors.forEach(f => {
+      const res = state.floorResults[f.id];
+      if (!res) return;
+      const floorFindings = [];
+
+      if (res.mode === 'challenge' && res.matchResults) {
+        res.matchResults.fullMatches.forEach(m => {
+          floorFindings.push({
+            file: m.aiFinding.file, line: m.aiFinding.startLine,
+            severity: m.aiFinding.severity, concern: m.aiFinding.concern,
+            source: 'matched'
+          });
+        });
+        res.matchResults.humanEdge.forEach(h => {
+          floorFindings.push({
+            file: h.file, line: h.startLine,
+            severity: 'REVIEWER', concern: h.notes || 'Lines ' + h.startLine + '-' + h.endLine,
+            source: 'human_edge'
+          });
+        });
+        res.matchResults.misses.forEach(m => {
+          floorFindings.push({
+            file: m.file, line: m.startLine,
+            severity: m.severity, concern: m.concern,
+            source: 'ai_unmatched'
+          });
+        });
+      } else if (res.mode === 'scout') {
+        f.findings.forEach(af => {
+          const dec = res.scoutDecisions[af.id];
+          if (dec && dec.type === 'acknowledge') {
+            floorFindings.push({
+              file: af.file, line: af.startLine,
+              severity: af.severity, concern: af.concern,
+              source: 'scout_acknowledged'
+            });
+          }
+        });
+      }
+
+      if (floorFindings.length > 0) {
+        hasFindings = true;
+        html += `<div style="margin-bottom:10px"><strong style="font-size:0.82rem">Floor ${f.id}: ${f.name}</strong>`;
+        floorFindings.forEach(ff => {
+          const sevClass = ff.severity.toLowerCase();
+          const sourceLabels = { matched: 'Full Match', human_edge: 'Human Edge', ai_unmatched: 'AI Unmatched', scout_acknowledged: 'Acknowledged' };
+          html += `<div class="finding-entry" style="margin-top:4px">
+            <span class="severity-badge ${sevClass}">${ff.severity}</span>
+            <div class="finding-detail">
+              <div>${ff.concern}</div>
+              <div class="finding-location">${ff.file} : ${ff.line}</div>
+            </div>
+            <span style="font-size:0.7rem;color:var(--text-muted)">${sourceLabels[ff.source] || ff.source}</span>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+    });
+    if (!hasFindings) {
+      html += `<p style="color:var(--text-muted);font-size:0.82rem">No findings recorded.</p>`;
+    }
+    html += `</div>`;
+
+    html += `<div class="summary-section"><h3>Floor Scores</h3><table class="score-table">
+      <thead><tr><th>Floor</th><th>Mode</th><th style="text-align:right">Score</th></tr></thead><tbody>`;
+    state.data.tower.floors.forEach(f => {
+      const res = state.floorResults[f.id];
+      if (res) {
+        html += `<tr><td>[${f.id}] ${f.name} (${f.difficulty})</td><td>${capitalize(res.mode)}</td><td class="score-val">${res.score}</td></tr>`;
+      } else {
+        html += `<tr style="opacity:0.4"><td>[${f.id}] ${f.name}</td><td>-</td><td class="score-val">-</td></tr>`;
+      }
+    });
+    const rawTotal = Object.values(state.floorResults).reduce((s, r) => s + r.score, 0);
+    html += `<tr class="total-row"><td colspan="2">Floor Total</td><td class="score-val">${rawTotal}</td></tr>`;
+    html += `<tr class="total-row"><td colspan="2">Tower Complexity: ${state.data.tower.complexity.tier} (${state.data.tower.complexity.multiplier}x)</td><td class="score-val">${state.sessionXP} XP</td></tr>`;
+    html += `</tbody></table></div>`;
+
+    html += `<div class="summary-section"><h3>Progression</h3>
+      <div style="text-align:center;margin-bottom:8px">
+        <strong>${s.current_title}</strong> (Tier ${s.current_tier}) &mdash; ${s.total_xp} XP
+      </div>
+      <div class="xp-bar"><div class="xp-bar-fill" style="width:${pct}%"></div></div>
+      <div style="text-align:center;font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+        ${nextThreshold ? `${pct}% to ${getTitleFromTier(s.title_theme, newTier + 1)}` : 'Max tier reached!'}
+      </div>
+    </div>`;
+
+    html += `<div class="summary-section"><h3>Badges</h3><div class="badge-display">`;
+    state.sessionBadges.earned.forEach(b => {
+      html += `<div class="badge-card earned"><span>${BADGE_DEFS[b].icon}</span><span class="badge-label">${BADGE_DEFS[b].label}</span></div>`;
+    });
+    state.sessionBadges.missed.forEach(m => {
+      html += `<div class="badge-card missed"><span>${BADGE_DEFS[m.key].icon}</span><span class="badge-label">${BADGE_DEFS[m.key].label}</span><span class="badge-reason">${m.reason}</span></div>`;
+    });
+    html += `</div></div>`;
+
+    html += `<div style="text-align:center;margin-top:16px;display:flex;gap:8px;justify-content:center">
+      <button class="btn btn-secondary" id="summary-export-btn">Export to Claude</button>
+      <button class="btn btn-primary" id="close-summary-btn">Close</button>
+    </div>`;
+
+    document.getElementById('summary-content').innerHTML = html;
+    document.getElementById('summary-export-btn').addEventListener('click', exportToClaude);
+    document.getElementById('close-summary-btn').addEventListener('click', () => {
+      document.getElementById('summary-overlay').classList.add('hidden');
+    });
+  }
+
+  // ================================================================
+  // DIFF RENDERING
+  // ================================================================
+  function renderFileTabs(floor) {
+    const tabs = document.getElementById('file-tabs');
+    if (floor.diffs.length <= 1) {
+      tabs.innerHTML = '';
+      return;
+    }
+    tabs.innerHTML = floor.diffs.map((d, i) => `
+      <div class="file-tab ${i === state.currentFileIndex ? 'active' : ''}" data-file-idx="${i}">
+        ${d.file.split('/').pop()}
+      </div>
+    `).join('');
+    tabs.querySelectorAll('.file-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        state.currentFileIndex = parseInt(tab.dataset.fileIdx);
+        renderFileTabs(floor);
+        renderCurrentDiff(floor);
+        if (state.phase === 'scout-review') highlightAIFindings(floor);
+        if (state.phase === 'challenge-review') {
+          state.reviewerFindings
+            .filter(f => f.file === floor.diffs[state.currentFileIndex].file)
+            .forEach(f => highlightReviewerFinding(f));
+        }
+        if (state.phase === 'revisit') {
+          highlightRevisitFindings(floor, state.floorResults[floor.id]);
+        }
+      });
+    });
+  }
+
+  function renderCurrentDiff(floor) {
+    const diff = floor.diffs[state.currentFileIndex];
+    if (!diff) {
+      document.getElementById('diff-container').innerHTML = '<p style="padding:20px;color:var(--text-muted)">No diff available</p>';
+      return;
+    }
+
+    try {
+      const html = Diff2Html.html(diff.diff, {
+        outputFormat: state.viewFormat,
+        drawFileList: false,
+        matching: 'lines',
+        highlight: true,
+        renderNothingWhenEmpty: false
+      });
+      document.getElementById('diff-container').innerHTML = html;
+    } catch {
+      document.getElementById('diff-container').innerHTML =
+        `<pre style="padding:16px;font-size:0.82rem;overflow:auto;white-space:pre-wrap">${escapeHtml(diff.diff)}</pre>`;
+    }
+
+    if (state.phase === 'challenge-review') injectGutterButtons();
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ================================================================
+  // FINDING INPUT (Challenge Mode)
+  // ================================================================
+  function injectGutterButtons() {
+    const container = document.getElementById('diff-container');
+    const rows = container.querySelectorAll('tr');
+    rows.forEach(tr => {
+      const lineNumCells = tr.querySelectorAll('td.d2h-code-linenumber, td.d2h-code-side-linenumber');
+      lineNumCells.forEach(cell => {
+        const lineNum = extractNewLineNumber(cell);
+        if (lineNum === null) return;
+        cell.style.position = 'relative';
+        const btn = document.createElement('button');
+        btn.className = 'gutter-add-btn';
+        btn.textContent = '+';
+        btn.dataset.line = lineNum;
+        btn.addEventListener('click', (e) => { e.stopPropagation(); handleGutterClick(lineNum, tr); });
+        cell.appendChild(btn);
+      });
+    });
+  }
+
+  function extractNewLineNumber(cell) {
+    const num2 = cell.querySelector('.line-num2');
+    if (num2 && num2.textContent.trim()) return parseInt(num2.textContent.trim()) || null;
+
+    if (cell.classList.contains('d2h-code-side-linenumber')) {
+      const text = cell.textContent.trim();
+      return parseInt(text) || null;
+    }
+
+    const text = cell.textContent.trim();
+    return parseInt(text) || null;
+  }
+
+  function handleGutterClick(lineNum, tr) {
+    const floor = getFloor(state.currentFloorId);
+    const currentFile = floor.diffs[state.currentFileIndex].file;
+
+    if (state.gutterStartLine === null || state.gutterStartFile !== currentFile) {
+      state.gutterStartLine = lineNum;
+      state.gutterStartFile = currentFile;
+      tr.classList.add('gutter-range-start');
+    } else {
+      const startLine = Math.min(state.gutterStartLine, lineNum);
+      let endLine = Math.max(state.gutterStartLine, lineNum);
+      endLine = Math.min(endLine, startLine + HIGHLIGHT_LINE_CAP - 1);
+
+      document.querySelectorAll('.gutter-range-start').forEach(el => el.classList.remove('gutter-range-start'));
+      state.gutterStartLine = null;
+      state.gutterStartFile = null;
+
+      showPopover(currentFile, startLine, endLine, tr);
+    }
+  }
+
+  function handleTextSelection() {
+    if (state.phase !== 'challenge-review') return;
+    const sel = window.getSelection();
+    if (sel.isCollapsed) return;
+
+    const container = document.getElementById('diff-container');
+    const range = sel.getRangeAt(0);
+    if (!container.contains(range.commonAncestorContainer)) return;
+
+    const lines = getSelectedLines(range, container);
+    if (lines.length === 0) return;
+
+    let startLine = lines[0];
+    let endLine = lines[lines.length - 1];
+    endLine = Math.min(endLine, startLine + HIGHLIGHT_LINE_CAP - 1);
+
+    const floor = getFloor(state.currentFloorId);
+    const currentFile = floor.diffs[state.currentFileIndex].file;
+
+    const lastRow = getRowForLine(endLine);
+    showPopover(currentFile, startLine, endLine, lastRow);
+    sel.removeAllRanges();
+  }
+
+  function getSelectedLines(range, container) {
+    const lines = [];
+    const rows = container.querySelectorAll('tr');
+    for (const tr of rows) {
+      if (!range.intersectsNode(tr)) continue;
+      const cells = tr.querySelectorAll('td.d2h-code-linenumber, td.d2h-code-side-linenumber');
+      for (const cell of cells) {
+        const num = extractNewLineNumber(cell);
+        if (num !== null) { lines.push(num); break; }
+      }
+    }
+    return [...new Set(lines)].sort((a, b) => a - b);
+  }
+
+  function getRowForLine(lineNum) {
+    const container = document.getElementById('diff-container');
+    const rows = container.querySelectorAll('tr');
+    for (const tr of rows) {
+      const cells = tr.querySelectorAll('td.d2h-code-linenumber, td.d2h-code-side-linenumber');
+      for (const cell of cells) {
+        if (extractNewLineNumber(cell) === lineNum) return tr;
+      }
+    }
+    return null;
+  }
+
+  // ================================================================
+  // POPOVER
+  // ================================================================
+  function showPopover(file, startLine, endLine, anchorEl) {
+    const pop = document.getElementById('finding-popover');
+    document.getElementById('pop-file').value = file;
+    document.getElementById('pop-lines').value = `${startLine} - ${endLine}`;
+    document.getElementById('pop-notes').value = '';
+    state.popoverTarget = { file, startLine, endLine };
+
+    pop.classList.remove('hidden');
+
+    if (anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      let top = rect.bottom + 4;
+      let left = rect.left + 40;
+      if (top + 250 > window.innerHeight) top = rect.top - 254;
+      if (left + 300 > window.innerWidth) left = window.innerWidth - 310;
+      pop.style.top = Math.max(4, top) + 'px';
+      pop.style.left = Math.max(4, left) + 'px';
+    }
+
+    document.getElementById('pop-notes').focus();
+  }
+
+  function hidePopover() {
+    document.getElementById('finding-popover').classList.add('hidden');
+    state.popoverTarget = null;
+  }
+
+  function commitPopover() {
+    if (!state.popoverTarget) return;
+    const notes = document.getElementById('pop-notes').value.trim();
+    addReviewerFinding(
+      state.popoverTarget.file,
+      state.popoverTarget.startLine,
+      state.popoverTarget.endLine,
+      notes
+    );
+    hidePopover();
+  }
+
+  // ================================================================
+  // DIFF HIGHLIGHTING
+  // ================================================================
+  function highlightReviewerFinding(finding) {
+    applyLineHighlight(finding.file, finding.startLine, finding.endLine, 'hl-reviewer', `#${finding.id}`);
+  }
+
+  function highlightAIFindings(floor) {
+    const currentFile = floor.diffs[state.currentFileIndex]?.file;
+    floor.findings
+      .filter(f => f.file === currentFile)
+      .forEach(f => {
+        applyLineHighlight(f.file, f.startLine, f.endLine, 'hl-ai', `AI#${f.id} ${f.severity}`);
+      });
+  }
+
+  function highlightMatchResults(floor) {
+    const mr = state.matchResults;
+    const currentFile = floor.diffs[state.currentFileIndex]?.file;
+
+    mr.fullMatches.forEach(m => {
+      if (m.aiFinding.file === currentFile) {
+        applyLineHighlight(m.aiFinding.file, m.aiFinding.startLine, m.aiFinding.endLine, 'hl-matched', `Match`);
+      }
+    });
+    mr.humanEdge.forEach(h => {
+      if (h.file === currentFile) {
+        applyLineHighlight(h.file, h.startLine, h.endLine, 'hl-reviewer', `H.Edge`);
+      }
+    });
+    mr.misses.forEach(m => {
+      if (m.file === currentFile) {
+        applyLineHighlight(m.file, m.startLine, m.endLine, 'hl-ai', `Miss`);
+      }
+    });
+  }
+
+  function applyLineHighlight(file, startLine, endLine, cssClass, label) {
+    const container = document.getElementById('diff-container');
+    const rows = container.querySelectorAll('tr');
+
+    for (const tr of rows) {
+      const cells = tr.querySelectorAll('td.d2h-code-linenumber, td.d2h-code-side-linenumber');
+      for (const cell of cells) {
+        const num = extractNewLineNumber(cell);
+        if (num !== null && num >= startLine && num <= endLine) {
+          tr.classList.add('diff-line-highlight', cssClass);
+          if (num === startLine && label) {
+            const codeCells = tr.querySelectorAll('td.d2h-cntx, td.d2h-ins, td.d2h-del, td.d2h-change');
+            const lastCode = codeCells[codeCells.length - 1];
+            if (lastCode) {
+              lastCode.style.position = 'relative';
+              const marker = document.createElement('span');
+              marker.className = 'finding-marker';
+              marker.style.background = getComputedStyle(document.documentElement).getPropertyValue(
+                cssClass === 'hl-matched' ? '--match-full' : cssClass === 'hl-reviewer' ? '--match-human' : '--match-miss'
+              );
+              marker.style.color = '#000';
+              marker.textContent = label;
+              lastCode.appendChild(marker);
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  function clearAllHighlights() {
+    document.querySelectorAll('.diff-line-highlight').forEach(el => {
+      el.classList.remove('diff-line-highlight', 'hl-reviewer', 'hl-ai', 'hl-matched');
+    });
+    document.querySelectorAll('.finding-marker').forEach(el => el.remove());
+  }
+
+  // ================================================================
+  // UI UPDATES
+  // ================================================================
+  function buildSidebar() {
+    document.getElementById('pr-title-display').textContent = state.data.pr.title;
+    document.getElementById('complexity-display').textContent =
+      `${state.data.tower.complexity.tier} (${state.data.tower.complexity.multiplier}x) \u2022 ${state.data.tower.floors.length} floors`;
+
+    const badgeRow = document.getElementById('sidebar-badges');
+    badgeRow.innerHTML = Object.entries(BADGE_DEFS).map(([k, v]) =>
+      `<span class="badge-icon" id="badge-${k}" title="${v.label}">${v.icon}</span>`
+    ).join('');
+
+    updateSidebar();
+  }
+
+  function updateSidebar() {
+    const floorsEl = document.getElementById('tower-floors');
+    floorsEl.innerHTML = state.data.tower.floors.map(f => {
+      const res = state.floorResults[f.id];
+      const isActive = f.id === state.currentFloorId;
+      const cleared = !!res;
+      return `
+        <div class="floor-item ${cleared ? 'floor-cleared' : ''} ${isActive ? 'floor-active' : ''}"
+             data-floor-id="${f.id}">
+          <span class="floor-number">${f.id}</span>
+          <span class="floor-name">${f.name}</span>
+          <span class="diff-badge ${f.difficulty.toLowerCase()}">${f.difficulty}</span>
+          ${cleared ? `<span class="floor-score">${res.score}</span>` : ''}
+        </div>`;
+    }).join('');
+
+    floorsEl.querySelectorAll('.floor-item').forEach(el => {
+      el.addEventListener('click', () => {
+        if (state.phase === 'idle' || state.phase === 'revisit') selectFloor(parseInt(el.dataset.floorId));
+      });
+    });
+
+    document.getElementById('session-xp-display').textContent = `${state.sessionXP} XP`;
+
+    if (state.stats) {
+      const projectedXP = state.stats.total_xp + state.sessionXP;
+      const tier = getTierFromXP(projectedXP);
+      const title = getTitleFromTier(state.stats.title_theme, tier);
+      document.getElementById('tier-display').textContent = `${title} (Tier ${tier})`;
+    }
+
+    if (state.sessionBadges.earned) {
+      state.sessionBadges.earned.forEach(b => {
+        const el = document.getElementById(`badge-${b}`);
+        if (el) el.classList.add('earned');
+      });
+    }
+  }
+
+  function showIdle() {
+    document.getElementById('idle-message').classList.remove('hidden');
+    document.getElementById('review-area').classList.add('hidden');
+    document.getElementById('mode-select-modal').classList.add('hidden');
+  }
+
+  function showModeSelect() {
+    document.getElementById('idle-message').classList.add('hidden');
+    document.getElementById('mode-select-modal').classList.remove('hidden');
+  }
+
+  function hideModeSelect() {
+    document.getElementById('mode-select-modal').classList.add('hidden');
+  }
+
+  function setPhaseBadge(text, color) {
+    const badge = document.getElementById('phase-badge');
+    if (badge) {
+      badge.textContent = text;
+      badge.style.background = color;
+    }
+  }
+
+  // ================================================================
+  // EVENT HANDLERS
+  // ================================================================
+  function bindEvents() {
+    // Welcome theme selection
+    document.querySelectorAll('.theme-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        document.getElementById('welcome-start-btn').disabled = false;
+      });
+    });
+
+    document.getElementById('welcome-start-btn').addEventListener('click', () => {
+      const selected = document.querySelector('.theme-card.selected');
+      if (selected) initWithTheme(selected.dataset.themeChoice);
+    });
+
+    // Mode selection
+    document.querySelectorAll('.mode-card').forEach(card => {
+      card.addEventListener('click', () => startFloor(card.dataset.mode));
+    });
+
+    // View toggle
+    document.getElementById('view-toggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('.toggle-option');
+      if (!btn) return;
+      state.viewFormat = btn.dataset.view;
+      document.querySelectorAll('#view-toggle .toggle-option').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (state.currentFloorId) {
+        const floor = getFloor(state.currentFloorId);
+        renderCurrentDiff(floor);
+        if (state.phase === 'scout-review') highlightAIFindings(floor);
+      }
+    });
+
+    // Export to Claude
+    document.getElementById('export-btn').addEventListener('click', exportToClaude);
+
+    // Finish session
+    document.getElementById('finish-btn').addEventListener('click', () => {
+      if (state.phase === 'idle') finishSession();
+    });
+
+    // Finding popover
+    document.getElementById('pop-add').addEventListener('click', commitPopover);
+    document.getElementById('pop-cancel').addEventListener('click', hidePopover);
+
+    // Text selection for finding input
+    document.addEventListener('mouseup', () => {
+      setTimeout(handleTextSelection, 10);
+    });
+
+    // Close popover on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hidePopover();
+    });
+
+    // Storage event for multi-tab safety
+    if (storage.available) {
+      window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_KEY && state.phase === 'idle') {
+          state.stats = storage.get(STORAGE_KEY);
+          updateSidebar();
+        }
+      });
+    }
+  }
+
+  function bindBeforeUnload() {
+    if (state.beforeUnloadBound) return;
+    state.beforeUnloadBound = true;
+    window.addEventListener('beforeunload', (e) => {
+      const activePhases = ['challenge-review', 'challenge-reveal', 'challenge-dispute', 'scout-review'];
+      const inActivePhase = activePhases.includes(state.phase);
+      const hasUnexportedResults = Object.keys(state.floorResults).length > 0 && !state.hasExported;
+      if (inActivePhase || hasUnexportedResults) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+  }
+
+  // ================================================================
+  // EXPORT TO CLAUDE
+  // ================================================================
+  function buildExportPayload() {
+    const pr = state.data.pr;
+    const floors = state.data.tower.floors;
+    const comments = [];
+
+    for (const floor of floors) {
+      const result = state.floorResults[floor.id];
+      if (!result) continue;
+
+      if (result.mode === 'challenge' && result.matchResults) {
+        // Reviewer findings that matched AI findings
+        for (const m of result.matchResults.fullMatches) {
+          comments.push({
+            file: m.aiFinding.file,
+            line: m.aiFinding.startLine,
+            severity: m.aiFinding.severity,
+            category: m.aiFinding.category,
+            concern: m.aiFinding.concern,
+            reviewerNotes: m.reviewerFinding.notes || null,
+            source: 'matched'
+          });
+        }
+        // Human Edge findings (reviewer found, AI missed)
+        for (const h of result.matchResults.humanEdge) {
+          comments.push({
+            file: h.file,
+            line: h.startLine,
+            severity: 'REVIEWER',
+            category: 'Human Edge',
+            concern: h.notes || `Issue found at lines ${h.startLine}-${h.endLine}`,
+            reviewerNotes: h.notes || null,
+            source: 'human_edge'
+          });
+        }
+        // AI misses the reviewer acknowledged via disputes
+        for (const m of result.matchResults.misses) {
+          const dispute = result.disputes[m.id];
+          if (dispute && dispute.valid) continue; // correctly disputed = false positive, skip
+          comments.push({
+            file: m.file,
+            line: m.startLine,
+            severity: m.severity,
+            category: m.category,
+            concern: m.concern,
+            reviewerNotes: null,
+            source: 'ai_unmatched'
+          });
+        }
+      } else if (result.mode === 'scout') {
+        for (const f of floor.findings) {
+          const decision = result.scoutDecisions[f.id];
+          if (!decision) continue;
+          if (decision.type === 'acknowledge') {
+            comments.push({
+              file: f.file,
+              line: f.startLine,
+              severity: f.severity,
+              category: f.category,
+              concern: f.concern,
+              reviewerNotes: null,
+              source: 'scout_acknowledged'
+            });
+          }
+          // disputed findings are excluded
+        }
+      }
+    }
+
+    return { pr, comments };
+  }
+
+  function exportToClaude() {
+    const payload = buildExportPayload();
+    if (payload.comments.length === 0) {
+      alert('No findings to export. Review at least one floor first.');
+      return;
+    }
+    const json = JSON.stringify(payload, null, 2);
+
+    // Try clipboard first
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(json).then(() => {
+        state.hasExported = true;
+        alert(`Copied ${payload.comments.length} findings to clipboard.\n\nPaste into Claude with:\n"Post these review findings to the PR"`);
+      }).catch(() => {
+        state.hasExported = true;
+        showExportFallback(json, payload.comments.length);
+      });
+    } else {
+      state.hasExported = true;
+      showExportFallback(json, payload.comments.length);
+    }
+  }
+
+  function showExportFallback(json, count) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:20px;max-width:600px;width:90%;max-height:80vh;display:flex;flex-direction:column">
+        <h3 style="margin-bottom:8px;font-family:var(--font-heading)">${count} findings ready</h3>
+        <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px">Copy and paste into Claude with: "Post these review findings to the PR"</p>
+        <textarea id="export-textarea" style="flex:1;min-height:200px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;font-family:var(--font-mono);font-size:0.75rem;resize:none" readonly>${json.replace(/</g,'&lt;')}</textarea>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+          <button class="btn btn-secondary" onclick="this.closest('div[style]').remove()">Close</button>
+          <button class="btn btn-primary" onclick="document.getElementById('export-textarea').select();document.execCommand('copy');this.textContent='Copied!'">Copy All</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+
+  // ================================================================
+  // INITIALIZATION
+  // ================================================================
+  function init() {
+    bindEvents();
+
+    if (typeof TOWER_DATA === 'string' && TOWER_DATA === '__TOWER_DATA__') {
+      document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#888"><h2>Review Tower</h2><p>No tower data loaded. This template is meant to be populated by the Review Tower skill.</p></div>';
+      return;
+    }
+
+    try {
+      startGame();
+    } catch (err) {
+      document.body.innerHTML = `<div style="padding:40px;color:#ff6b6b"><h2>Error loading tower data</h2><pre>${escapeHtml(String(err))}</pre></div>`;
+    }
+  }
+
+  init();
+  </script>
+</body>
+</html>
