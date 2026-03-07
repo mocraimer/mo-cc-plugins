@@ -27,7 +27,7 @@ Changelog draft: `~/.claude/loop-recipes/changelog-draft.md`
    # Changelog Writer Log
    ```
 
-2. If `status: in-progress` with a `locked_by` field set, a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+2. If `status: in-progress` with a `locked_by` field set and `locked_by` timestamp is less than 10 minutes old, a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**. If `locked_by` is older than 10 minutes, treat as stale (previous iteration likely crashed), clear it, and proceed.
 
 3. Set `locked_by: <current_timestamp>` and `status: in-progress`.
 
@@ -55,12 +55,12 @@ Determine what's new since the last checkpoint:
 git log --since="<last_checkpoint_time>" --pretty=format:"%H" --no-merges 2>/dev/null
 ```
 
-If `last_checkpoint_commit` is set, also use:
+If `last_checkpoint_commit` is set, prefer the commit-range approach:
 ```bash
 git log <last_checkpoint_commit>..HEAD --pretty=format:"%H" --no-merges 2>/dev/null
 ```
 
-Use whichever yields results. Filter out any commits already in `processed_commits` to handle deduplication.
+Fall back to time-based (`--since`) only if the commit is unreachable (e.g., after a rebase). Filter out any commits already in `processed_commits` to handle deduplication.
 
 If no new commits: output "No new commits since last check." and **stop**.
 
@@ -81,7 +81,7 @@ For each commit, understand:
 
 Skip auto-generated files: lock files (`package-lock.json`, `yarn.lock`, `Cargo.lock`, `poetry.lock`), build output, `.min.js` files, generated code.
 
-If the diff for a single commit is very large (>500 lines), summarize from the `--stat` output and commit message rather than reading the full diff.
+If the diff for a single commit is very large (>500 lines — beyond what can be meaningfully analyzed line-by-line), summarize from the `--stat` output and commit message rather than reading the full diff.
 
 ### Step 3: Generate Changelog Entries
 

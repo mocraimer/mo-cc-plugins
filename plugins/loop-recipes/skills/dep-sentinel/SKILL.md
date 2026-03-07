@@ -147,13 +147,13 @@ Outdated packages are classified as:
 
 ### Step 5: Delta Reporting
 
-Compare current findings against `previous_findings` from state:
+Compare current findings against `previous_findings` from state. Match findings by the tuple `(ecosystem, package_name, advisory_id)`:
 
 - **New vulnerabilities:** Found now but not in previous scan → alert
 - **Resolved vulnerabilities:** In previous scan but gone now → log as resolved
 - **Unchanged vulnerabilities:** Same as before → do not re-alert
 
-Same logic for outdated packages against `previous_outdated`.
+Same logic for outdated packages against `previous_outdated`, matched by `(ecosystem, package_name)`.
 
 ### Step 6: Report
 
