@@ -1,12 +1,12 @@
 ---
 name: content-pipeline
-description: "Social media content pipeline that monitors git activity and generates Reddit/LinkedIn-ready drafts in a review queue. Never auto-posts. Designed for /loop — runs periodically to capture development stories as they happen. Usage: /loop 30m /content-pipeline"
+description: "Social media content pipeline that monitors git activity and Claude Code sessions to generate Reddit/LinkedIn-ready drafts in a review queue. Never auto-posts. Designed for /loop — runs periodically to capture development stories as they happen. Usage: /loop 30m /content-pipeline"
 user-invokable: true
 ---
 
 # Social Media Content Pipeline
 
-You are a content generation agent running as a recurring `/loop` iteration. Your job: scan recent git activity, identify interesting development stories, and draft platform-specific content into a review queue. You NEVER post content directly.
+You are a content generation agent running as a recurring `/loop` iteration. Your job: scan recent git activity and Claude Code session transcripts, identify interesting development stories, and draft platform-specific content into a review queue. You NEVER post content directly.
 
 ## State Management
 
@@ -20,10 +20,13 @@ Content queue: `~/.content-queue.md`
    ---
    status: idle
    last_checkpoint: "1970-01-01T00:00:00Z"
+   last_session_scan: "1970-01-01T00:00:00Z"
    total_drafts: 0
    ---
    # Content Pipeline Log
    ```
+
+   If the file exists but has no `last_session_scan` field, treat it as `"1970-01-01T00:00:00Z"`.
 
 2. If `status: in-progress` with a `locked_by` field set, a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
 
@@ -36,6 +39,7 @@ Content queue: `~/.content-queue.md`
 After every iteration:
 - Clear `locked_by`, set `status: idle`
 - Update `last_checkpoint` to current timestamp
+- Update `last_session_scan` to current timestamp
 - Update `total_drafts` count
 - Append iteration summary to log section
 
@@ -55,9 +59,27 @@ Also check what files changed:
 git diff --stat <oldest_commit_in_range>..HEAD
 ```
 
-If no commits since last checkpoint: output "No new activity since last check." Update checkpoint. **Stop.**
+If no commits since last checkpoint, note "No new git activity" and continue to Step 2.
 
-### Step 2: Filter — Is This Interesting?
+### Step 2: Scan Session Activity
+
+Find Claude Code session files modified since `last_session_scan`:
+
+```bash
+find ~/.claude/projects -maxdepth 2 -name "*.jsonl" -newermt "<last_session_scan>" 2>/dev/null
+```
+
+Use `-maxdepth 2` to exclude subagent sessions in `subagents/` subdirectories.
+
+If `~/.claude/projects` does not exist or no session files are found, note "No new session activity" and skip the extraction below.
+
+For each session file found, extract the human-readable conversation flow — user prompts and assistant text responses. Skip all tool invocations, internal reasoning, system metadata, progress indicators, and file-history snapshots.
+
+**If no git activity AND no session activity:** Output "No new activity since last check." Update checkpoints. **Stop.**
+
+### Step 3: Filter — Is This Interesting?
+
+#### Git Commits
 
 Classify each commit as interesting or mundane:
 
@@ -75,11 +97,32 @@ Classify each commit as interesting or mundane:
 - Performance improvements with measurable results
 - Interesting debugging stories (multi-commit sequences showing investigation)
 
-If ALL commits are mundane: output "Nothing interesting this cycle." Update checkpoint. **Stop.**
+#### Session Conversations
 
-### Step 3: Assess Activity Scale
+Classify each session as interesting or mundane:
 
-Group the interesting commits and determine content format:
+**Mundane (skip):**
+- Quick file lookups or reads with no narrative
+- Simple configuration or setup tasks
+- Routine command execution with no problem-solving
+- Sessions with fewer than three user-assistant turn pairs beyond simple acknowledgments
+
+**Interesting (draft content):**
+- Debugging narratives — a problem described, investigated, and resolved
+- Architectural decisions with rationale discussed in the conversation
+- Problem-solving journeys — especially with dead ends, pivots, or surprising solutions
+- Novel approaches or creative uses of tools/libraries
+- Technical discoveries — learning something unexpected about a system or technology
+
+If ALL git commits are mundane AND all sessions are mundane: output "Nothing interesting this cycle." Update checkpoints. **Stop.**
+
+### Step 4: Deduplicate Sources
+
+When git commits and a session describe the same work — the session was active during the period when those commits were made, and both concern similar files or topics — produce only one draft. Prefer the session as the source: it contains the narrative behind the code changes.
+
+### Step 5: Assess Activity Scale
+
+Group the interesting content and determine format:
 
 | Activity | Format |
 |----------|--------|
@@ -87,8 +130,10 @@ Group the interesting commits and determine content format:
 | 3+ related commits or 1 large feature | Detailed post / story |
 | Multi-commit debugging sequence | Narrative debugging story |
 | Architectural refactor | Technical deep-dive |
+| Session with problem → investigation → solution arc | Narrative debugging story |
+| Session with architectural discussion or technical discovery | Technical deep-dive |
 
-### Step 4: Generate Platform-Specific Content
+### Step 6: Generate Platform-Specific Content
 
 For each content-worthy activity, generate drafts for both platforms:
 
@@ -105,11 +150,11 @@ For each content-worthy activity, generate drafts for both platforms:
 - **Include:** Broader industry relevance, lessons learned
 - **Avoid:** Too much code, jargon without context, humble-bragging
 
-### Step 5: Write to Review Queue
+### Step 7: Write to Review Queue
 
 Append each draft to `~/.content-queue.md`. NEVER post content directly anywhere.
 
-Format for each entry:
+Format for git-sourced entries:
 
 ```markdown
 ---
@@ -133,13 +178,39 @@ Format for each entry:
 ---
 ```
 
-### Step 6: Content Safety Check
+Format for session-sourced entries:
+
+```markdown
+---
+
+## Draft <number> — <date>
+
+**Source:** Session <session-id> in <project directory>
+**Activity:** <brief description of the session narrative>
+**Format:** <quick-post | detailed-story | debugging-narrative | deep-dive>
+
+### Reddit (<suggested subreddit>)
+
+<draft content>
+
+### LinkedIn
+
+<draft content>
+
+**Status:** pending-review
+
+---
+```
+
+### Step 8: Content Safety Check
 
 Before writing any draft, verify:
 - No private code snippets (internal APIs, secrets, proprietary logic)
 - No references to internal tools, repos, or systems by name unless they're public
 - No customer/user data
 - No security vulnerabilities being disclosed
+- No conversation fragments that reveal internal debugging approaches or proprietary architecture (session-sourced content)
+- No file paths, API responses, or error messages that expose internal infrastructure (session-sourced content)
 
 If a draft references potentially private content, add a `**Warning:** Contains potentially private references — review carefully` note.
 
