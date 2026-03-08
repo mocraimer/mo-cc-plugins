@@ -1,7 +1,7 @@
 {
   "name": "loop-recipes",
-  "version": "2.0.0",
-  "description": "10 autonomous recurring skills designed for /loop — self-healing debugger, content pipeline, work dispatcher, preference learner, plugin monitor, daily briefing, focus guardian, dependency sentinel, changelog writer, and ambient researcher.",
+  "version": "2.1.0",
+  "description": "11 autonomous recurring skills designed for /loop — self-healing debugger, content pipeline, work dispatcher, preference learner, plugin monitor, daily briefing, focus guardian, dependency sentinel, changelog writer, ambient researcher, and workhorse (general-purpose autonomous task agent).",
   "author": {
     "name": "mocraimer",
     "email": "mocraimer@users.noreply.github.com"

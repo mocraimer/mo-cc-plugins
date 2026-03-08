@@ -1,6 +1,6 @@
 # loop-recipes
 
-10 autonomous recurring skills designed for `/loop` — self-healing debugger, social media content pipeline, proactive work dispatcher, manifest preference learner, plugin health monitor, daily briefing, focus guardian, dependency sentinel, changelog writer, and ambient researcher.
+11 autonomous recurring skills designed for `/loop` — self-healing debugger, social media content pipeline, proactive work dispatcher, manifest preference learner, plugin health monitor, daily briefing, focus guardian, dependency sentinel, changelog writer, ambient researcher, and workhorse (general-purpose autonomous task agent).
 
 ## Installation
 
@@ -111,6 +111,18 @@ Reads current development context (branch, recent changes, libraries in use), id
 
 **Expected behavior:** Each iteration reads your development context, identifies 2-3 useful research topics, and presents them for opt-in. When approved, uses web search to gather findings and writes structured research notes to `~/.claude/loop-recipes/research/`.
 
+### workhorse
+
+General-purpose autonomous task agent that takes arbitrary development tasks, plans them via `/define`, executes via `/do`, and manages a persistent task queue. Simulates OpenClaw-like autonomous agent behavior — recurring execution, persistent state, human approval gates, bounded retries, and graceful degradation.
+
+```
+/loop 10m /workhorse 'build user auth for login page'
+```
+
+**Expected behavior:** Each iteration advances the active task through its lifecycle: plan (autonomous `/define`), approve (user reviews manifest), execute (`/do` with worktree isolation), retry on failure (max 3), complete and advance queue. Multiple tasks can be queued. Use `/workhorse status` to view current state.
+
+**State:** `~/.claude/loop-recipes/workhorse-state.md` (cross-session) + per-task directories under `~/.claude/loop-recipes/workhorse-tasks/`.
+
 ## Important: Session Scope
 
 `CronCreate` and `/loop` jobs **only run while the Claude Code session is alive**. When you close the terminal, the session ends and all scheduled jobs stop. They do not persist across sessions.
@@ -136,6 +148,7 @@ If you need a skill to run independently of your terminal session, set up a syst
 | dep-sentinel | `/tmp/dep-sentinel-state.md` | Session-scoped |
 | changelog-writer | `~/.claude/loop-recipes/changelog-writer-state.md` | Cross-session |
 | ambient-researcher | `~/.claude/loop-recipes/ambient-researcher-state.md` | Cross-session |
+| workhorse | `~/.claude/loop-recipes/workhorse-state.md` | Cross-session |
 
 ## License
 
