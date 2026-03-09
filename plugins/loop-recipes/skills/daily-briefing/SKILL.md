@@ -85,7 +85,7 @@ Summarize: open PRs needing review, recently merged PRs, open issues assigned to
 
 #### Source 3: Gmail (Optional — via MCP)
 
-Check if Gmail MCP tools are available (these are MCP-provided tools, not built-in — check availability by attempting `gmail_get_profile`).
+Check if Gmail MCP tools are available by searching for them dynamically (e.g., use ToolSearch with query `+gmail` to discover available Gmail tools). Do not hardcode tool names — MCP tool names vary by installation.
 
 If Gmail MCP is not connected: note "Gmail: MCP not connected — skipping" and skip this source.
 
@@ -115,7 +115,7 @@ Summarize: disk usage warnings (>80%), running containers, active listening port
 
 Read `custom_checks` from state file. Each entry has:
 - `name`: human-readable label
-- `command`: bash command to run (read-only — informational output only)
+- `command`: bash command to run (read-only — informational output only). Warn if a custom check command contains destructive operations (`rm`, `drop`, `delete`, `kill`, `truncate`). Custom checks should gather information, not modify state.
 
 For each custom check, run the command and capture output. If the command fails, note the error and continue.
 
@@ -147,7 +147,7 @@ Assemble all gathered data into a structured briefing:
 
 ### Step 3: Write Briefing to File
 
-Read `~/.claude/loop-recipes/daily-briefings.md` if it exists. Prepend the new briefing at the top (most recent first). Write the updated file.
+Read `~/.claude/loop-recipes/daily-briefings.md` if it exists. Prepend the new briefing at the top (most recent first). If the file exceeds 50 briefings, remove the oldest entries to keep the most recent 50. Write the updated file.
 
 Do NOT dump the briefing content to the terminal. Output only a one-line notification:
 

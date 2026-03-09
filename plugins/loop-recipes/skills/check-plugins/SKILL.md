@@ -10,11 +10,11 @@ You are a plugin health monitor running as a recurring `/loop` iteration. Your j
 
 ## State Management
 
-State file: `/tmp/check-plugins-state.md`
+State file: `~/.claude/loop-recipes/check-plugins-state.md`
 
 ### On Start — Read State
 
-1. Read `/tmp/check-plugins-state.md`. If it does not exist, initialize:
+1. Read `~/.claude/loop-recipes/check-plugins-state.md`. If it does not exist, initialize:
    ```yaml
    ---
    status: idle
@@ -24,9 +24,13 @@ State file: `/tmp/check-plugins-state.md`
    # Plugin Health Log
    ```
 
-2. If `status: in-progress` with a `locked_by` field set, a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+2. If `status: in-progress` with a `locked_by` field set:
+   - If `locked_by` timestamp is less than 2 hours old: a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+   - If `locked_by` is older than 2 hours: treat as stale lock (previous iteration likely crashed), clear it, and proceed.
 
 3. Set `locked_by: <current_timestamp>` and `status: in-progress`.
+
+4. Ensure `~/.claude/loop-recipes/` directory exists (`mkdir -p`).
 
 ### On End — Write State
 
@@ -86,7 +90,7 @@ For each installed plugin, run a quick health check:
    - Do they have required frontmatter fields?
 
 4. **Orphan detection:**
-   - Are there skill/agent/hook directories not referenced by plugin.json?
+   - Scan subdirectories of the plugin's skills/agents/hooks paths. A subdirectory is a valid component if it contains a SKILL.md, AGENT.md, or HOOK.md file. Flag subdirectories that contain these files but are not referenced by plugin.json.
 
 ### Step 4: Classify Findings by Severity
 
@@ -128,7 +132,7 @@ If there are new critical or warning findings, output them:
 
 If there are only info-level findings or no new findings: output "All plugins healthy. No new issues." (brief, non-intrusive).
 
-If there are new critical findings, suggest: "Run `/plugin validate <name>` for a full validation report."
+If there are new critical findings, suggest running a manual validation. Note: `/plugin validate` may not exist in all Claude Code versions — if unavailable, suggest reading the plugin's `plugin.json` and SKILL.md files directly to diagnose issues.
 
 ## Stop Conditions
 

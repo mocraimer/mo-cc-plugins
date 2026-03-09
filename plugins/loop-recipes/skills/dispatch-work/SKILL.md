@@ -10,11 +10,11 @@ You are a work dispatcher agent running as a recurring `/loop` iteration. Your j
 
 ## State Management
 
-State file: `/tmp/dispatch-work-state.md`
+State file: `~/.claude/loop-recipes/dispatch-work-state.md`
 
 ### On Start — Read State
 
-1. Read `/tmp/dispatch-work-state.md`. If it does not exist, initialize:
+1. Read `~/.claude/loop-recipes/dispatch-work-state.md`. If it does not exist, initialize:
    ```yaml
    ---
    status: idle
@@ -26,9 +26,13 @@ State file: `/tmp/dispatch-work-state.md`
    # Dispatch Log
    ```
 
-2. If `status: in-progress` with a `locked_by` field set, a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+2. If `status: in-progress` with a `locked_by` field set:
+   - If `locked_by` timestamp is less than 20 minutes old: a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+   - If `locked_by` is older than 20 minutes: treat as stale lock (previous iteration likely crashed), clear it, and proceed.
 
 3. Set `locked_by: <current_timestamp>` and `status: in-progress`.
+
+4. Ensure `~/.claude/loop-recipes/` directory exists (`mkdir -p`).
 
 ### On End — Write State
 
@@ -96,24 +100,14 @@ For each candidate issue, estimate which files would be touched. Compare against
 
 ### Step 6: Suggest to User
 
-If there are suitable issues, present the top 1-3 candidates using AskUserQuestion:
+If there are suitable issues, present the top candidate via AskUserQuestion. Include a brief summary in the question text (issue number, title, complexity, affected files).
 
-```
-Found actionable issues suitable for autonomous resolution:
+Options (2-4, depending on candidate count):
+- "Dispatch #<number>: <title>" (for each candidate, up to 3)
+- "Skip all — not now"
 
-1. #<number>: <title>
-   Complexity: <trivial/medium>
-   Files likely affected: <list>
-   Confidence: <high/moderate>
-
-2. ...
-
-Would you like me to dispatch any of these to a worktree agent?
-Reply with issue numbers (e.g., "42, 17") or "skip" to pass.
-```
-
-- If user says "skip" or declines: add to `skipped_issues`. **Stop.**
-- If user approves: proceed to Step 7.
+- If user selects a dispatch option: proceed to Step 7 for that issue. Add remaining candidates back to the pool for next iteration.
+- If user says "Skip all": add all candidates to `skipped_issues`. **Stop.**
 - If no suitable issues found: output "No actionable issues found this cycle." **Stop.**
 
 ### Step 7: Dispatch to Worktree Agent

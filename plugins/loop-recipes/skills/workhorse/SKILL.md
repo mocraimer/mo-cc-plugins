@@ -76,7 +76,13 @@ When `$ARGUMENTS` contains a new task (not `status`):
 
 ## Phase Machine
 
-Determine the active task's `phase` and execute the corresponding logic.
+**Quick reference — read the active task's `phase` from state and go to that section:**
+- No `active_task.id` → IDLE
+- `PLANNING` → Autonomous Manifest Creation
+- `APPROVAL` → Human Review Gate
+- `EXECUTING` → Manifest Execution
+- `RETRYING` → Failure Recovery
+- `COMPLETE` → Task Finished
 
 ### IDLE — No Active Task
 
@@ -85,10 +91,12 @@ Determine the active task's `phase` and execute the corresponding logic.
 **Actions:**
 - If `queue` is not empty: dequeue the first task, set it as `active_task` with `phase: PLANNING`. Transition immediately to PLANNING.
 - If `queue` is empty: present the user with options via AskUserQuestion:
-  - "What would you like me to work on next?"
-  - Options: free-text task description, or "Go idle — nothing right now"
-  - If user provides a task: enqueue it and set as active with `phase: PLANNING`.
-  - If user says idle: output "Standing by. Will check again next iteration." **Stop this iteration.**
+  - Options:
+    - "Suggest tasks based on open issues"
+    - "I'll add a task next iteration"
+    - "Go idle — nothing right now"
+  - If user picks "Suggest tasks": scan `gh issue list` for candidates and present top 3 as follow-up AskUserQuestion options.
+  - If user picks "I'll add a task" or "Go idle": output "Standing by. Will check again next iteration." **Stop this iteration.**
 
 ### PLANNING — Autonomous Manifest Creation
 
@@ -98,14 +106,18 @@ Determine the active task's `phase` and execute the corresponding logic.
 1. Invoke `/define` via the Skill tool:
    ```
    Skill: "manifest-dev:define"
-   Args: "no questions. <active_task.description>"
+   Args: "<active_task.description>. Work autonomously — choose the recommended option when presented with choices, do not pause for clarification."
    ```
    If `active_task.feedback` is set (from a rejected APPROVAL): append the feedback to the args:
    ```
-   Args: "no questions. <active_task.description>. FEEDBACK FROM PREVIOUS REJECTION: <feedback>"
+   Args: "<active_task.description>. Work autonomously — choose the recommended option when presented with choices, do not pause for clarification. FEEDBACK FROM PREVIOUS REJECTION: <feedback>"
    ```
 
-2. Capture the manifest path from /define's output. /define ends with `Manifest complete: /tmp/manifest-<timestamp>.md` — extract that path. If the path cannot be found in the output, log the issue and **stop this iteration** (the next iteration will retry PLANNING).
+2. Capture the manifest path from /define's output. /define ends with `Manifest complete: /tmp/manifest-<timestamp>.md` — extract that path. If the path cannot be found in the output, search for recent manifests as a fallback:
+   ```bash
+   ls -t /tmp/manifest-*.md 2>/dev/null | head -5
+   ```
+   If a recent manifest (modified within the last 10 minutes) is found, use it. Otherwise, log the issue and **stop this iteration** (the next iteration will retry PLANNING).
 
 3. Copy the manifest into the task directory for persistence:
    ```bash

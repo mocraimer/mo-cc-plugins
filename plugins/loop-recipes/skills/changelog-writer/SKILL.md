@@ -33,7 +33,7 @@ Changelog draft: `~/.claude/loop-recipes/changelog-draft.md`
 
 4. Ensure `~/.claude/loop-recipes/` directory exists (`mkdir -p`).
 
-5. Read `last_checkpoint_commit` and `processed_commits` for deduplication.
+5. Read `last_checkpoint_commit` and `processed_commits` for deduplication. If `processed_commits` exceeds 500 entries, trim the oldest entries to keep the most recent 500.
 
 ### On End — Write State
 
@@ -60,7 +60,7 @@ If `last_checkpoint_commit` is set, prefer the commit-range approach:
 git log <last_checkpoint_commit>..HEAD --pretty=format:"%H" --no-merges 2>/dev/null
 ```
 
-Fall back to time-based (`--since`) only if the commit is unreachable (e.g., after a rebase). Filter out any commits already in `processed_commits` to handle deduplication.
+Fall back to time-based (`--since`) only if the commit is unreachable (e.g., after a force-push or rebase). Filter out any commits already in `processed_commits` to handle deduplication. When using the time-based fallback, also check for semantically identical entries already in the changelog draft (same files changed + same type of change) to avoid duplicate entries from rebased commits.
 
 If no new commits: output "No new commits since last check." and **stop**.
 

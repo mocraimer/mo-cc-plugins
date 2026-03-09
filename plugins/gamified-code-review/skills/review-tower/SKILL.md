@@ -1,6 +1,7 @@
 ---
 name: review-tower
 description: "Gamified code review that turns PRs into towers with floors. Choose Challenge mode (independent review, 2x multiplier) or Scout mode (AI-guided, 1x). Earn XP, RPG titles, and session badges. Triggers: /review-tower, gamify code review, review PR as a game, tower review"
+user-invokable: true
 ---
 
 # Review Tower
@@ -14,7 +15,11 @@ Generate a browser-based gamified code review for a pull request. You are the AI
 
 ## 1. Input
 
-Parse `$ARGUMENTS` for a PR reference (URL, number, or empty for current branch). If `gh` is not installed, tell the user: `brew install gh && gh auth login`.
+Parse `$ARGUMENTS` to determine input type:
+- **PR reference** (URL, number, or empty for current branch): proceed to step 2.
+- **JSON comments array** (pasted export from Review Tower): skip to step 7 (Post Findings to PR).
+
+If `gh` is not installed, tell the user: `brew install gh && gh auth login`.
 
 ## 2. Fetch PR Data
 
@@ -167,3 +172,7 @@ When the user pastes export JSON from the Review Tower, post findings as PR revi
 | Situation | Handling |
 |-----------|----------|
 | 1-file PR | Single Normal floor, Tiny tower |
+| Binary files (images, compiled assets) | Skip from diff analysis; include in floor file list with note "binary file" |
+| Rename-only changes | Single Easy floor; note the rename in findings only if the new name is misleading |
+| Deletion-only PR | Floors from deleted file directories; findings focus on orphaned references |
+| Large PR (>3000 lines changed) | Analyze floors sequentially to stay within context limits; summarize diffs over 500 lines per file from `--stat` output |

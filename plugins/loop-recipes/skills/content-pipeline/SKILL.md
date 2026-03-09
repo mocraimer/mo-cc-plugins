@@ -11,7 +11,7 @@ You are a content generation agent running as a recurring `/loop` iteration. You
 ## State Management
 
 State file: `~/.claude/loop-recipes/content-pipeline-state.md`
-Content queue: `~/.content-queue.md`
+Content queue: `~/.claude/loop-recipes/content-queue.md`
 
 ### On Start — Read State
 
@@ -28,7 +28,9 @@ Content queue: `~/.content-queue.md`
 
    If the file exists but has no `last_session_scan` field, treat it as `"1970-01-01T00:00:00Z"`.
 
-2. If `status: in-progress` with a `locked_by` field set, a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+2. If `status: in-progress` with a `locked_by` field set:
+   - If `locked_by` timestamp is less than 60 minutes old: a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+   - If `locked_by` is older than 60 minutes: treat as stale lock (previous iteration likely crashed), clear it, and proceed.
 
 3. Set `locked_by: <current_timestamp>` and `status: in-progress`.
 
@@ -66,14 +68,15 @@ If no commits since last checkpoint, note "No new git activity" and continue to 
 Find Claude Code session files modified since `last_session_scan`:
 
 ```bash
-find ~/.claude/projects -maxdepth 2 -name "*.jsonl" -newermt "<last_session_scan>" 2>/dev/null
+touch -t "$(date -d '<last_session_scan>' +%Y%m%d%H%M.%S 2>/dev/null || date -j -f '%Y-%m-%dT%H:%M:%SZ' '<last_session_scan>' +%Y%m%d%H%M.%S 2>/dev/null)" /tmp/.content-pipeline-ref 2>/dev/null
+find ~/.claude/projects -maxdepth 2 -name "*.jsonl" -newer /tmp/.content-pipeline-ref 2>/dev/null
 ```
 
 Use `-maxdepth 2` to exclude subagent sessions in `subagents/` subdirectories.
 
 If `~/.claude/projects` does not exist or no session files are found, note "No new session activity" and skip the extraction below.
 
-For each session file found, extract the human-readable conversation flow — user prompts and assistant text responses. Skip all tool invocations, internal reasoning, system metadata, progress indicators, and file-history snapshots.
+For each session file found, extract the human-readable conversation flow. Session files are JSONL. Extract `human` and `assistant` entries with text content. Skip all tool invocations, internal reasoning, system metadata, progress indicators, and file-history snapshots.
 
 **If no git activity AND no session activity:** Output "No new activity since last check." Update checkpoints. **Stop.**
 
@@ -150,9 +153,21 @@ For each content-worthy activity, generate drafts for both platforms:
 - **Include:** Broader industry relevance, lessons learned
 - **Avoid:** Too much code, jargon without context, humble-bragging
 
-### Step 7: Write to Review Queue
+### Step 7: Content Safety Check
 
-Append each draft to `~/.content-queue.md`. NEVER post content directly anywhere.
+Before writing any draft, verify:
+- No private code snippets (internal APIs, secrets, proprietary logic)
+- No references to internal tools, repos, or systems by name unless they're public
+- No customer/user data
+- No security vulnerabilities being disclosed
+- No conversation fragments that reveal internal debugging approaches or proprietary architecture (session-sourced content)
+- No file paths, API responses, or error messages that expose internal infrastructure (session-sourced content)
+
+If a draft references potentially private content, add a `**Warning:** Contains potentially private references — review carefully` note.
+
+### Step 8: Write to Review Queue
+
+Append each draft to `~/.claude/loop-recipes/content-queue.md`. NEVER post content directly anywhere.
 
 Format for git-sourced entries:
 
@@ -201,18 +216,6 @@ Format for session-sourced entries:
 
 ---
 ```
-
-### Step 8: Content Safety Check
-
-Before writing any draft, verify:
-- No private code snippets (internal APIs, secrets, proprietary logic)
-- No references to internal tools, repos, or systems by name unless they're public
-- No customer/user data
-- No security vulnerabilities being disclosed
-- No conversation fragments that reveal internal debugging approaches or proprietary architecture (session-sourced content)
-- No file paths, API responses, or error messages that expose internal infrastructure (session-sourced content)
-
-If a draft references potentially private content, add a `**Warning:** Contains potentially private references — review carefully` note.
 
 ## Stop Conditions
 

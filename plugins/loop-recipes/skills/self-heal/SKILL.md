@@ -34,7 +34,9 @@ State file: `/tmp/self-heal-state.md`
    # Self-Heal Log
    ```
 
-2. If the state file exists and `status: in-progress` with a `locked_by` field set, a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop this iteration**.
+2. If the state file exists and `status: in-progress` with a `locked_by` field set:
+   - If `locked_by` timestamp is less than 5 minutes old: a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop this iteration**.
+   - If `locked_by` is older than 5 minutes: treat as stale lock (previous iteration likely crashed), clear it, and proceed.
 
 3. If `status: completed` or `status: flaky` or `attempt >= max_attempts`, output the final report from state and tell the user to stop the loop. **Stop this iteration.**
 
@@ -72,13 +74,15 @@ Read the error output. Identify:
 - The relevant source file(s) and line numbers
 - The root cause hypothesis
 
-Check previous attempts in the state log — do NOT repeat a fix that already failed. If all obvious approaches have been tried, try a different angle or escalate.
+Check previous attempts in the state log — do NOT repeat a fix that already failed. If all obvious approaches have been tried, try a different angle. If no viable approaches remain, log the analysis and stop this iteration — the next iteration will either find a new angle or exhaust attempts.
 
 ### Step 3: Attempt a Fix in Worktree
 
-Create an isolated worktree for this attempt:
+Create an isolated worktree for this attempt. First, clean up any leftover worktree or branch from a previous crashed iteration at this attempt number:
 
 ```bash
+git worktree remove /tmp/self-heal-worktree-<attempt> --force 2>/dev/null
+git branch -D self-heal-attempt-<attempt> 2>/dev/null
 git worktree add /tmp/self-heal-worktree-<attempt> -b self-heal-attempt-<attempt>
 ```
 
