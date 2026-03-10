@@ -27,7 +27,9 @@ Research output: `~/.claude/loop-recipes/research/`
    # Ambient Researcher Log
    ```
 
-2. If `status: in-progress` with a `locked_by` field set, a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+2. If `status: in-progress` with a `locked_by` field set:
+   - If `locked_by` timestamp is less than 30 minutes old: a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+   - If `locked_by` is older than 30 minutes: treat as stale lock (previous iteration likely crashed), clear it, and proceed.
 
 3. Set `locked_by: <current_timestamp>` and `status: in-progress`.
 
@@ -65,9 +67,7 @@ Read a sample of recently changed files to understand:
 
 Also check for:
 ```bash
-cat package.json 2>/dev/null | head -30
-cat requirements.txt 2>/dev/null | head -20
-cat Cargo.toml 2>/dev/null | head -20
+Use the Read tool to read package.json, requirements.txt, or Cargo.toml (whichever exist).
 ```
 
 If no meaningful context can be gathered (no git repo, no recent changes): output "No development context found." and **stop**.
@@ -107,14 +107,12 @@ Options:
 - "Research topic 1"
 - "Research topic 2"
 - "Research topic 3"
-- "Research all"
 - "Skip all — not interested"
 
 ### Step 4: Process Response
 
-- **User selects specific topic(s):** Proceed to Step 5 for each selected topic. Add unselected topics to `declined_topics`.
-- **"Research all":** Proceed to Step 5 for all topics.
-- **"Skip all":** Add all topics to `declined_topics`. Log: "All topics declined." **Stop.**
+- **User selects a specific topic:** Proceed to Step 5 for the selected topic. Unselected topics remain as candidates for future iterations — do not add them to `declined_topics`.
+- **"Skip all":** Add all presented topics to `declined_topics`. Log: "All topics declined." **Stop.**
 
 ### Step 5: Research Approved Topics
 

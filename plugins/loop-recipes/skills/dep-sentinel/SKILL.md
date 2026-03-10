@@ -10,11 +10,11 @@ You are a dependency security agent running as a recurring `/loop` iteration. Yo
 
 ## State Management
 
-State file: `/tmp/dep-sentinel-state.md`
+State file: `~/.claude/loop-recipes/dep-sentinel-state.md`
 
 ### On Start — Read State
 
-1. Read `/tmp/dep-sentinel-state.md`. If it does not exist, initialize:
+1. Read `~/.claude/loop-recipes/dep-sentinel-state.md`. If it does not exist, initialize:
    ```yaml
    ---
    status: idle
@@ -29,7 +29,9 @@ State file: `/tmp/dep-sentinel-state.md`
 
 3. Set `locked_by: <current_timestamp>` and `status: in-progress`.
 
-4. Read `previous_findings` and `previous_outdated` for delta comparison.
+4. Ensure `~/.claude/loop-recipes/` directory exists (`mkdir -p`).
+
+5. Read `previous_findings` and `previous_outdated` for delta comparison.
 
 ### On End — Write State
 
@@ -46,17 +48,17 @@ After every iteration:
 Scan the current project for manifest files:
 
 ```bash
-find . -maxdepth 3 -name "package.json" -not -path "*/node_modules/*" 2>/dev/null
-find . -maxdepth 3 \( -name "requirements.txt" -o -name "pyproject.toml" -o -name "Pipfile" -o -name "setup.py" \) 2>/dev/null
-find . -maxdepth 3 -name "Cargo.toml" 2>/dev/null
-find . -maxdepth 3 -name "go.mod" 2>/dev/null
-find . -maxdepth 3 -name "Gemfile" 2>/dev/null
-find . -maxdepth 3 -name "pom.xml" 2>/dev/null
-find . -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) 2>/dev/null
-find . -maxdepth 3 -name "composer.json" 2>/dev/null
+find . -maxdepth 3 -not -path "*/node_modules/*" \( \
+  -name "package.json" -o -name "requirements.txt" -o -name "pyproject.toml" -o \
+  -name "Pipfile" -o -name "setup.py" -o -name "Cargo.toml" -o -name "go.mod" -o \
+  -name "Gemfile" -o -name "pom.xml" -o -name "build.gradle" -o \
+  -name "build.gradle.kts" -o -name "composer.json" \
+\) 2>/dev/null
 ```
 
-Build a list of detected ecosystems with their manifest paths. If multiple manifests exist for the same ecosystem (e.g., monorepo with several `package.json`), run audit commands from the project root — most audit tools handle workspaces natively.
+Build a list of detected ecosystems with their manifest paths.
+
+**Monorepo handling:** If a root `package.json` contains a `workspaces` field, run audit commands from the root — npm/yarn handle workspaces natively. For non-workspace monorepos (multiple independent `package.json` files without a root workspace config), run audit commands separately from each manifest's directory.
 - `package.json` → Node.js/npm
 - `requirements.txt` / `pyproject.toml` / `Pipfile` → Python
 - `Cargo.toml` → Rust

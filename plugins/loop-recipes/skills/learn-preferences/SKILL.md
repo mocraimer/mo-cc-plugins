@@ -31,7 +31,9 @@ State file: `~/.claude/loop-recipes/preference-candidates.md` (persistent across
    ## Applied (already written to CLAUDE.md)
    ```
 
-2. If `status: in-progress` with a `locked_by` field set, a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+2. If `status: in-progress` with a `locked_by` field set:
+   - If `locked_by` timestamp is less than 2 hours old: a previous iteration is still running. Output "Previous iteration still running — skipping." and **stop**.
+   - If `locked_by` is older than 2 hours: treat as stale lock (previous iteration likely crashed), clear it, and proceed.
 
 3. Set `locked_by: <current_timestamp>` and `status: in-progress`.
 
@@ -49,7 +51,7 @@ After every iteration:
 
 ### Step 1: Find Recent Manifests and Logs
 
-Search for files modified in the last 24 hours:
+Search for manifests and discovery logs. Note: these files live in `/tmp` and are ephemeral (lost on reboot).
 
 ```bash
 find /tmp -name "manifest-*.md" -mtime -1 2>/dev/null
@@ -90,7 +92,7 @@ For each new pattern, compare against existing candidates in the state file:
 
 If there are confirmed patterns not yet applied:
 
-1. Read the existing CLAUDE.md file(s) in the project.
+1. Determine the target CLAUDE.md: check for a project-level CLAUDE.md first (in the current repo root). If it exists, use it. If not, fall back to the global `~/.claude/CLAUDE.md`. Present the chosen target to the user when suggesting additions — they can override.
 2. For each confirmed pattern, check:
    - Does a similar preference already exist in CLAUDE.md? → Skip (or suggest consolidation).
    - Does it conflict with an existing entry? → Flag the conflict, do not suggest.
@@ -109,12 +111,15 @@ Based on patterns observed across multiple /define sessions, I'd like to suggest
 
 2. ...
 
-Would you like me to add any of these? Reply with numbers (e.g., "1, 3") or "skip".
+Which suggestions would you like to apply?
 ```
 
-- If user approves: use the Edit tool to merge additions into CLAUDE.md (never overwrite with Write). Move patterns to "Applied" in state.
-- If user declines specific ones: move to "Applied" with note "user-declined" so they aren't suggested again.
-- If user says "skip": leave as confirmed for next iteration.
+Options (2-4, depending on suggestion count):
+- "Apply suggestion 1" (for each suggestion, up to 3)
+- "Skip all — not now"
+
+- If user selects a suggestion: use the Edit tool to merge that addition into CLAUDE.md (never overwrite with Write). Move the pattern to "Applied" in state.
+- If user declines (selects "Skip all"): leave suggestions as confirmed for next iteration.
 
 ### Step 5: CLAUDE.md Growth Control
 
