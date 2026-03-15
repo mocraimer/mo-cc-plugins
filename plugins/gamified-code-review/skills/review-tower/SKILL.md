@@ -115,7 +115,15 @@ The unified diff is a single output. Split it by file boundary (`diff --git a/..
 
 ## 6. Generate HTML
 
-Inject the JSON into `./template.html` by replacing the `'__TOWER_DATA__'` token (including surrounding single quotes) with the JSON object literal. Escape any `</script>` sequences in diff strings as `<\/script>` to prevent premature script tag closure. Write to `/tmp/review-tower-<pr-number>.html` and open in browser.
+Inject the JSON into `./template.html` by replacing the `'__TOWER_DATA__'` token (including surrounding single quotes) with the JSON object literal.
+
+**Critical escaping requirements:**
+1. Escape any `</script>` sequences in diff strings as `<\/script>` to prevent premature script tag closure.
+2. **Use a function replacement** when calling `String.replace` — diff data contains `$` characters (`$schema`, `$&`, `$'`, etc.) that JavaScript interprets as special replacement patterns. Use `template.replace("'__TOWER_DATA__'", () => jsonLiteral)` instead of `template.replace("'__TOWER_DATA__'", jsonLiteral)`.
+
+**Verify before opening:** Confirm the output HTML has exactly 1 `</html>` tag and 3 `</script>` tags (2 CDN + 1 main). If counts differ, the injection corrupted the HTML.
+
+Write to `/tmp/review-tower-<pr-number>.html` and open in browser.
 
 ## 7. Post Findings to PR
 
@@ -175,4 +183,4 @@ When the user pastes export JSON from the Review Tower, post findings as PR revi
 | Binary files (images, compiled assets) | Skip from diff analysis; include in floor file list with note "binary file" |
 | Rename-only changes | Single Easy floor; note the rename in findings only if the new name is misleading |
 | Deletion-only PR | Floors from deleted file directories; findings focus on orphaned references |
-| Large PR (>3000 lines changed) | Analyze floors sequentially to stay within context limits; summarize diffs over 500 lines per file from `--stat` output |
+| Large PR (>3000 lines changed) | Use a script (Node.js/Python) to parse the diff, split by file, group into floors, and build the JSON skeleton. Launch parallel review agents for different floor groups to stay within context limits. Merge agent findings into the skeleton before HTML generation. |
